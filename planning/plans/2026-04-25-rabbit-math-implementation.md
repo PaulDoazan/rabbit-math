@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript (strict), Vite, PixiJS v8, Matter.js, Vitest + jsdom, ESLint + Prettier, pnpm. CI: GitHub Actions (`lint + test + build`).
 
-**Spec:** [`docs/superpowers/specs/2026-04-24-rabbit-math-design.md`](../specs/2026-04-24-rabbit-math-design.md). Refer to this file for visual references, exact palette values, animation descriptions, and acceptance criteria. The plan does not duplicate the spec — it implements it.
+**Spec:** [`planning/specs/2026-04-24-rabbit-math-design.md`](../specs/2026-04-24-rabbit-math-design.md). Refer to this file for visual references, exact palette values, animation descriptions, and acceptance criteria. The plan does not duplicate the spec — it implements it.
 
 **Constraints:**
 - Functions ≤ 20 lines.
@@ -25,7 +25,6 @@
 
 **Files:**
 - Create: `package.json`
-- Create: `pnpm-workspace.yaml` (empty, just for pnpm)
 
 - [ ] **Step 1: Verify pnpm is available**
 
@@ -74,7 +73,7 @@ pnpm add -D typescript vite vitest @vitest/ui @vitest/coverage-v8 jsdom \
 - [ ] **Step 5: Commit**
 
 ```bash
-git add package.json pnpm-lock.yaml pnpm-workspace.yaml
+git add package.json pnpm-lock.yaml
 git commit -m "chore: bootstrap project (pnpm, vite, pixi, matter, vitest)"
 ```
 
