@@ -42,6 +42,7 @@ interface Live {
   preview: TrajectoryPreview;
   input: SlingshotInput;
   resolving: boolean;
+  destroyed: boolean;
 }
 
 const ROUND_ADVANCE_MS = 1200;
@@ -102,20 +103,21 @@ const restAt = (d: RoundFlowDeps, l: Live, p: Vec): void => {
   l.carrot.syncView(); void fadeOutAndRemove(d, l.carrot);
 };
 
-const endSession = async (d: RoundFlowDeps): Promise<void> => {
+const endSession = async (d: RoundFlowDeps, l: Live): Promise<void> => {
   const s = d.session.snapshot();
   await playEndOfSession({
     fallenRabbits: d.rabbits.filter((r) => r.isFallen()),
     sign: d.sign, score: s.score, totalRounds: s.totalRounds, delay: d.delay,
   });
-  d.onSessionEnd();
+  if (!l.destroyed) d.onSessionEnd();
 };
 
 const advance = async (d: RoundFlowDeps, l: Live): Promise<void> => {
   await d.delay(ROUND_ADVANCE_MS);
-  if (d.session.snapshot().phase !== "round_over") return;
+  if (l.destroyed || d.session.snapshot().phase !== "round_over") return;
   d.session.nextRound();
-  if (d.session.isOver()) { await endSession(d); return; }
+  if (l.destroyed) return;
+  if (d.session.isOver()) { await endSession(d, l); return; }
   refresh(d); reload(d, l); l.resolving = false;
 };
 
@@ -164,7 +166,7 @@ const checkCollision = (d: RoundFlowDeps, l: Live): void => {
 };
 
 const tickFlow = (d: RoundFlowDeps, l: Live) => (): void => {
-  if (!l.carrot.isLaunched()) return;
+  if (l.destroyed || !l.carrot.isLaunched()) return;
   l.carrot.syncView();
   if (l.resolving) return;
   checkCollision(d, l);
@@ -205,16 +207,15 @@ const buildLive = (d: RoundFlowDeps): Live => {
   const preview = createTrajectoryPreview();
   d.view.addChild(preview.view);
   const stub = undefined as unknown as SlingshotInput;
-  const live: Live = { carrot: loadCarrot(d), preview, input: stub, resolving: false };
+  const live: Live = { carrot: loadCarrot(d), preview, input: stub, resolving: false, destroyed: false };
   live.input = createSlingshotInput({
     slingshot: d.slingshot, onAim: aimCb(d, live), onRelease: releaseCb(d, live),
   });
   return live;
 };
 
-const teardown = (d: RoundFlowDeps, detach: () => void): void => {
-  detach();
-  purgeCarrotBodies(d.physics);
+const teardown = (d: RoundFlowDeps, l: Live, detach: () => void): void => {
+  l.destroyed = true; detach(); purgeCarrotBodies(d.physics);
 };
 
 export function installRoundFlow(deps: RoundFlowDeps): RoundFlow {
@@ -225,6 +226,6 @@ export function installRoundFlow(deps: RoundFlowDeps): RoundFlow {
     tick: tickFlow(deps, live),
     forceCorrectHit: () => { deps.session.startResolving(); deps.session.recordHit(); },
     forceWrongHit: () => { deps.session.startResolving(); deps.session.recordMiss(); },
-    destroy: () => teardown(deps, detach),
+    destroy: () => teardown(deps, live, detach),
   };
 }
