@@ -53,9 +53,7 @@ const getSnapshot = (state: State, cfg: SessionConfig): SessionSnapshot => ({
 });
 
 const applyMiss = (state: State): void => {
-  if (state.phase !== "resolving" && state.phase !== "aiming") {
-    throw new Error(`recordMiss requires aiming or resolving, got ${state.phase}`);
-  }
+  requirePhase(state, "resolving");
   state.carrotsLeft -= 1;
   state.phase = state.carrotsLeft > 0 ? "aiming" : "round_over";
 };

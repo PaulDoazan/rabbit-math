@@ -56,7 +56,9 @@ describe("Session round transitions", () => {
   it("nextRound from the last round transitions to session_over", () => {
     const s = createSession({ rounds: [Q1, Q2], carrotsPerRound: 3 });
     s.startResolving(); s.recordHit(); s.nextRound();
-    s.startResolving(); s.recordMiss(); s.recordMiss(); s.recordMiss();
+    s.startResolving(); s.recordMiss();
+    s.startResolving(); s.recordMiss();
+    s.startResolving(); s.recordMiss();
     s.nextRound();
     expect(s.snapshot().phase).toBe("session_over");
     expect(s.isOver()).toBe(true);
