@@ -69,7 +69,7 @@ Les contrastes respectent WCAG AA minimum pour tous les éléments porteurs d'in
 Lapins **inspirés du style Bunny Suicides d'Andy Riley** : silhouettes rondes, grandes oreilles, trait noir épais. Couleur ajoutée par rapport à l'original (palette ci-dessus). Détails du visage et de la posture :
 
 - **Deux yeux** ronds noirs.
-- **Bouche en forme de petit "Y"** (deux traits formant un Y court, juste sous les yeux). Pas de nez.
+- **Bouche en forme de petit "Y" inversé (180°)** : deux branches courtes qui partent du haut et convergent en un point d'où descend une tige verticale, juste sous les yeux. Pas de nez.
 - **Quatre pattes** qui tiennent la **pancarte** :
   - 2 pattes au-dessus de la pancarte (par le haut)
   - 2 pattes en dessous (par le bas)
