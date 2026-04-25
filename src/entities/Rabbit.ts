@@ -28,15 +28,15 @@ export interface Rabbit {
 }
 
 const drawEars = (g: Graphics): void => {
-  // Two long ears tilted slightly outward; outline + inner-ear pink.
-  g.ellipse(-10, -38, 5, 16)
+  // Two long ears with their base touching the top of the head.
+  g.ellipse(-10, -28, 5, 16)
     .fill(COLORS.rabbitBody)
     .stroke({ width: STROKE.thick, color: COLORS.outline });
-  g.ellipse(10, -38, 5, 16)
+  g.ellipse(10, -28, 5, 16)
     .fill(COLORS.rabbitBody)
     .stroke({ width: STROKE.thick, color: COLORS.outline });
-  g.ellipse(-10, -38, 2, 11).fill(COLORS.rabbitInnerEar);
-  g.ellipse(10, -38, 2, 11).fill(COLORS.rabbitInnerEar);
+  g.ellipse(-10, -28, 2, 11).fill(COLORS.rabbitInnerEar);
+  g.ellipse(10, -28, 2, 11).fill(COLORS.rabbitInnerEar);
 };
 
 const drawBody = (g: Graphics): void => {
