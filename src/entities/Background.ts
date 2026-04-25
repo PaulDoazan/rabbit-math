@@ -14,19 +14,29 @@ const drawSun = (g: Graphics): void => {
     .stroke({ width: STROKE.thick, color: COLORS.outline });
 };
 
+const CLOUD_OUTLINE_PAD = 2.5;
+
+const cloudBumps = (cx: number, cy: number, s: number): Array<[number, number, number]> => {
+  const r = 18 * s;
+  return [
+    [cx - r * 1.1, cy + r * 0.05, r * 0.85],
+    [cx - r * 0.55, cy - r * 0.55, r * 0.75],
+    [cx + r * 0.05, cy - r * 0.85, r * 0.95],
+    [cx + r * 0.65, cy - r * 0.55, r * 0.78],
+    [cx + r * 1.15, cy + r * 0.05, r * 0.78],
+    [cx + r * 0.1, cy + r * 0.1, r * 0.75],
+  ];
+};
+
 const drawCloud = (g: Graphics, cx: number, cy: number, scale: number): void => {
-  const r = 18 * scale;
-  g.circle(cx - r, cy, r)
-    .circle(cx, cy - r * 0.6, r * 1.1)
-    .circle(cx + r, cy, r)
-    .circle(cx + r * 0.4, cy + r * 0.3, r * 0.9)
-    .fill(COLORS.cloud)
-    .stroke({ width: STROKE.thick, color: COLORS.outline });
+  const bumps = cloudBumps(cx, cy, scale);
+  for (const [x, y, r] of bumps) g.circle(x, y, r + CLOUD_OUTLINE_PAD).fill(COLORS.outline);
+  for (const [x, y, r] of bumps) g.circle(x, y, r).fill(COLORS.cloud);
 };
 
 const drawClouds = (g: Graphics): void => {
-  drawCloud(g, 180, 70, 1.0);
-  drawCloud(g, 480, 50, 0.85);
+  drawCloud(g, 180, 75, 1.0);
+  drawCloud(g, 480, 55, 0.85);
 };
 
 const drawHills = (g: Graphics): void => {
