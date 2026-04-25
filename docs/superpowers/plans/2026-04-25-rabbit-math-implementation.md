@@ -25,7 +25,6 @@
 
 **Files:**
 - Create: `package.json`
-- Create: `pnpm-workspace.yaml` (empty, just for pnpm)
 
 - [ ] **Step 1: Verify pnpm is available**
 
@@ -74,7 +73,7 @@ pnpm add -D typescript vite vitest @vitest/ui @vitest/coverage-v8 jsdom \
 - [ ] **Step 5: Commit**
 
 ```bash
-git add package.json pnpm-lock.yaml pnpm-workspace.yaml
+git add package.json pnpm-lock.yaml
 git commit -m "chore: bootstrap project (pnpm, vite, pixi, matter, vitest)"
 ```
 
