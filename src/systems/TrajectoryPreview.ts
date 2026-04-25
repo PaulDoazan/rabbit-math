@@ -1,31 +1,41 @@
+import Matter from "matter-js";
 import { Container, Graphics } from "pixi.js";
 import { COLORS } from "../config/theme";
-import { GRAVITY_Y } from "../config/physics";
-import { TRAJECTORY_STEPS, TRAJECTORY_TIME_HORIZON } from "../config/dimensions";
+import { CARROT_DENSITY, CARROT_FRICTION, CARROT_RADIUS, CARROT_RESTITUTION, GRAVITY_Y } from "../config/physics";
 
 export interface Vec {
   x: number;
   y: number;
 }
 
+const SIM_STEPS = 60;
+const SIM_DT_MS = 1000 / 60;
+
 export function computeTrajectoryPoints(
   start: Vec,
   velocity: Vec,
-  gravity: number,
-  steps: number,
-  horizonSeconds: number,
 ): Vec[] {
-  const out: Vec[] = [];
-  const dt = horizonSeconds / steps;
-  for (let i = 0; i < steps; i++) {
-    const t = i * dt;
-    out.push({
-      x: start.x + velocity.x * t,
-      y: start.y + velocity.y * t + 0.5 * gravity * t * t,
-    });
-  }
-  return out;
+  const engine = Matter.Engine.create();
+  engine.gravity.y = GRAVITY_Y;
+  const body = Matter.Bodies.circle(start.x, start.y, CARROT_RADIUS, {
+    density: CARROT_DENSITY,
+    friction: CARROT_FRICTION,
+    restitution: CARROT_RESTITUTION,
+  });
+  Matter.World.add(engine.world, body);
+  Matter.Body.setVelocity(body, velocity);
+  return simulate(engine, body);
 }
+
+const simulate = (engine: Matter.Engine, body: Matter.Body): Vec[] => {
+  const out: Vec[] = [{ x: body.position.x, y: body.position.y }];
+  for (let i = 0; i < SIM_STEPS; i++) {
+    Matter.Engine.update(engine, SIM_DT_MS);
+    out.push({ x: body.position.x, y: body.position.y });
+  }
+  Matter.Engine.clear(engine);
+  return out;
+};
 
 export interface TrajectoryPreview {
   readonly view: Container;
@@ -35,21 +45,14 @@ export interface TrajectoryPreview {
 
 const drawDots = (g: Graphics, points: readonly Vec[]): void => {
   g.clear();
-  for (let i = 0; i < points.length; i += 4) {
+  for (let i = 1; i < points.length; i += 3) {
     const p = points[i]!;
-    g.circle(p.x, p.y, 1.7).fill(COLORS.outline);
+    g.circle(p.x, p.y, 2).fill(COLORS.outline);
   }
 };
 
-const renderShow = (g: Graphics) => (start: Vec, velocity: Vec) => {
-  const pts = computeTrajectoryPoints(
-    start,
-    velocity,
-    GRAVITY_Y * 1000,
-    TRAJECTORY_STEPS,
-    TRAJECTORY_TIME_HORIZON,
-  );
-  drawDots(g, pts);
+const renderShow = (g: Graphics) => (start: Vec, velocity: Vec): void => {
+  drawDots(g, computeTrajectoryPoints(start, velocity));
 };
 
 export function createTrajectoryPreview(): TrajectoryPreview {
