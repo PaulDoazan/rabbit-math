@@ -13,7 +13,7 @@ import type { Session } from "../domain/Session";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Settings } from "../services/Settings";
 import { playEndOfSession } from "./endOfSession";
-import { fadeOutAndRemove, purgeCarrotBodies } from "./gameRoundCleanup";
+import { fadeOutAndRemove, purgeOwnedBodies } from "./gameRoundCleanup";
 
 export interface Vec { x: number; y: number }
 
@@ -43,6 +43,7 @@ interface Live {
   input: SlingshotInput;
   resolving: boolean;
   destroyed: boolean;
+  owned: Set<Matter.Body>;
 }
 
 const ROUND_ADVANCE_MS = 1200;
@@ -58,9 +59,10 @@ const setBodyAt = (c: Carrot, p: Vec): void => {
   c.view.position.set(p.x, p.y);
 };
 
-const loadCarrot = (d: RoundFlowDeps): Carrot => {
+const loadCarrot = (d: RoundFlowDeps, l: Live): Carrot => {
   const c = createCarrot(d.slingshot.carrotPosition());
   d.physics.addBody(c.body);
+  l.owned.add(c.body);
   d.view.addChild(c.view);
   return c;
 };
@@ -90,17 +92,16 @@ const refresh = (d: RoundFlowDeps): void => {
 
 const removeCarrot = (d: RoundFlowDeps, l: Live): void => {
   d.physics.removeBody(l.carrot.body);
+  l.owned.delete(l.carrot.body);
   l.carrot.view.parent?.removeChild(l.carrot.view);
 };
 
-const reload = (d: RoundFlowDeps, l: Live): void => {
-  removeCarrot(d, l);
-  l.carrot = loadCarrot(d);
-};
+const reload = (d: RoundFlowDeps, l: Live): void => { removeCarrot(d, l); l.carrot = loadCarrot(d, l); };
 
 const restAt = (d: RoundFlowDeps, l: Live, p: Vec): void => {
   l.carrot.restAtGround({ x: p.x, y: GROUND_Y });
-  l.carrot.syncView(); void fadeOutAndRemove(d, l.carrot);
+  l.carrot.syncView();
+  void fadeOutAndRemove({ physics: d.physics, delay: d.delay, owned: l.owned }, l.carrot);
 };
 
 const endSession = async (d: RoundFlowDeps, l: Live): Promise<void> => {
@@ -117,14 +118,14 @@ const advance = async (d: RoundFlowDeps, l: Live): Promise<void> => {
   if (l.destroyed || d.session.snapshot().phase !== "round_over") return;
   d.session.nextRound();
   if (l.destroyed) return;
-  if (d.session.isOver()) { await endSession(d, l); return; }
+  if (d.session.isOver()) return void endSession(d, l);
   refresh(d); reload(d, l); l.resolving = false;
 };
 
 const continueOrEnd = (d: RoundFlowDeps, l: Live): void => {
   d.counter.setRemaining(d.session.snapshot().carrotsLeft);
   if (d.session.snapshot().phase === "aiming") {
-    l.carrot = loadCarrot(d); l.resolving = false; return;
+    l.carrot = loadCarrot(d, l); l.resolving = false; return;
   }
   void advance(d, l);
 };
@@ -154,15 +155,15 @@ const onMiss = (d: RoundFlowDeps, l: Live, p: Vec): void => {
 const resolveRabbit = (d: RoundFlowDeps, l: Live, idx: number): void => {
   l.resolving = true;
   const ok = d.rabbits[idx]!.getNumber() === d.session.currentQuestion().answer;
-  if (ok) onCorrect(d, l, idx); else onWrong(d, l, idx);
+  (ok ? onCorrect : onWrong)(d, l, idx);
 };
 
 const checkCollision = (d: RoundFlowDeps, l: Live): void => {
-  const body = l.carrot.body;
-  const p = { x: body.position.x, y: body.position.y };
+  const b = l.carrot.body;
+  const p = { x: b.position.x, y: b.position.y };
   const idx = findHit(d, p);
-  if (idx >= 0) { resolveRabbit(d, l, idx); return; }
-  if (isLost(p, body.velocity)) { l.resolving = true; onMiss(d, l, p); }
+  if (idx >= 0) return resolveRabbit(d, l, idx);
+  if (isLost(p, b.velocity)) { l.resolving = true; onMiss(d, l, p); }
 };
 
 const tickFlow = (d: RoundFlowDeps, l: Live) => (): void => {
@@ -206,16 +207,14 @@ const wireEvents = (d: RoundFlowDeps, l: Live): (() => void) => {
 const buildLive = (d: RoundFlowDeps): Live => {
   const preview = createTrajectoryPreview();
   d.view.addChild(preview.view);
-  const stub = undefined as unknown as SlingshotInput;
-  const live: Live = { carrot: loadCarrot(d), preview, input: stub, resolving: false, destroyed: false };
-  live.input = createSlingshotInput({
-    slingshot: d.slingshot, onAim: aimCb(d, live), onRelease: releaseCb(d, live),
-  });
+  const live = { carrot: undefined, preview, input: undefined, resolving: false, destroyed: false, owned: new Set() } as unknown as Live;
+  live.carrot = loadCarrot(d, live);
+  live.input = createSlingshotInput({ slingshot: d.slingshot, onAim: aimCb(d, live), onRelease: releaseCb(d, live) });
   return live;
 };
 
 const teardown = (d: RoundFlowDeps, l: Live, detach: () => void): void => {
-  l.destroyed = true; detach(); purgeCarrotBodies(d.physics);
+  l.destroyed = true; detach(); purgeOwnedBodies(d.physics, l.owned);
 };
 
 export function installRoundFlow(deps: RoundFlowDeps): RoundFlow {

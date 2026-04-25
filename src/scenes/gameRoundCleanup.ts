@@ -1,3 +1,4 @@
+import type Matter from "matter-js";
 import type { Carrot } from "../entities/Carrot";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
 import { tweenObject } from "../entities/animations/Tween";
@@ -5,17 +6,18 @@ import { tweenObject } from "../entities/animations/Tween";
 export interface CleanupDeps {
   physics: PhysicsWorld;
   delay: (ms: number) => Promise<void>;
+  owned: Set<Matter.Body>;
 }
 
 export async function fadeOutAndRemove(d: CleanupDeps, c: Carrot): Promise<void> {
   await d.delay(1000);
   await tweenObject(c.view, { alpha: 0 }, 400);
   d.physics.removeBody(c.body);
+  d.owned.delete(c.body);
   c.view.parent?.removeChild(c.view);
 }
 
-export function purgeCarrotBodies(physics: PhysicsWorld): void {
-  physics.engine.world.bodies
-    .filter((b) => b.label === "carrot")
-    .forEach((b) => physics.removeBody(b));
+export function purgeOwnedBodies(physics: PhysicsWorld, owned: Set<Matter.Body>): void {
+  for (const b of owned) physics.removeBody(b);
+  owned.clear();
 }
