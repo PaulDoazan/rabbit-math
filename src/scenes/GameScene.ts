@@ -47,7 +47,7 @@ interface Parts {
 
 const newSession = (settings: Settings): Session => {
   const rounds = generateSession({
-    tableListId: settings.tableListId,
+    pairs: settings.selectedPairs,
     difficulty: settings.difficulty,
     count: settings.roundsPerSession,
     seed: Date.now(),

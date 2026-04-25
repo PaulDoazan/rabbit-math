@@ -1,9 +1,9 @@
 import { readJson, writeJson } from "./Storage";
 import type { Difficulty } from "../domain/DifficultyConfig";
-import type { TableListId } from "../domain/tables";
+import { allPairs, type Pair } from "../domain/tables";
 
 export interface Settings {
-  tableListId: TableListId;
+  selectedPairs: Pair[];
   roundsPerSession: number;
   carrotsPerRound: number;
   difficulty: Difficulty;
@@ -15,7 +15,7 @@ export interface Settings {
 export const SETTINGS_KEY = "rabbit-math.settings";
 
 export const DEFAULT_SETTINGS: Settings = {
-  tableListId: "tables_all",
+  selectedPairs: allPairs(),
   roundsPerSession: 10,
   carrotsPerRound: 3,
   difficulty: "medium",
@@ -27,11 +27,20 @@ export const DEFAULT_SETTINGS: Settings = {
 const isDifficulty = (v: unknown): v is Difficulty =>
   v === "easy" || v === "medium" || v === "hard";
 
+const isPair = (v: unknown): v is Pair => {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.a === "number" && typeof o.b === "number";
+};
+
+const isPairArray = (v: unknown): v is Pair[] =>
+  Array.isArray(v) && v.every(isPair);
+
 const isShape = (v: unknown): v is Settings => {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
   return (
-    typeof o.tableListId === "string" &&
+    isPairArray(o.selectedPairs) &&
     typeof o.roundsPerSession === "number" &&
     typeof o.carrotsPerRound === "number" &&
     isDifficulty(o.difficulty) &&
@@ -46,6 +55,7 @@ export function validateSettings(s: Settings): Settings {
     ...s,
     roundsPerSession: Math.max(1, Math.floor(s.roundsPerSession)),
     carrotsPerRound: Math.max(1, Math.floor(s.carrotsPerRound)),
+    selectedPairs: s.selectedPairs.length >= 1 ? s.selectedPairs : allPairs(),
   };
 }
 
