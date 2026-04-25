@@ -61,6 +61,7 @@ const buildApi = (state: State): Carrot => ({
     state.launched = true;
     Matter.Body.setStatic(state.body, false);
     Matter.Body.setVelocity(state.body, v);
+    Matter.Body.setAngularVelocity(state.body, 0.35);
   },
   restAtGround: (pos) => {
     Matter.Body.setVelocity(state.body, { x: 0, y: 0 });

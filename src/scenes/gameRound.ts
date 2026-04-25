@@ -13,6 +13,7 @@ import type { Session } from "../domain/Session";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Settings } from "../services/Settings";
 import { playEndOfSession } from "./endOfSession";
+import { tweenObject } from "../entities/animations/Tween";
 
 export interface Vec { x: number; y: number }
 
@@ -40,7 +41,6 @@ interface Live {
   carrot: Carrot;
   preview: TrajectoryPreview;
   input: SlingshotInput;
-  rested: Carrot[];
   resolving: boolean;
 }
 
@@ -97,10 +97,16 @@ const reload = (d: RoundFlowDeps, l: Live): void => {
   l.carrot = loadCarrot(d);
 };
 
-const restAt = (l: Live, p: Vec): void => {
+const fadeOutAndRemove = async (d: RoundFlowDeps, c: Carrot): Promise<void> => {
+  await d.delay(1000);
+  await tweenObject(c.view, { alpha: 0 }, 400);
+  d.physics.removeBody(c.body);
+  c.view.parent?.removeChild(c.view);
+};
+
+const restAt = (d: RoundFlowDeps, l: Live, p: Vec): void => {
   l.carrot.restAtGround({ x: p.x, y: GROUND_Y });
-  l.carrot.syncView();
-  l.rested.push(l.carrot);
+  l.carrot.syncView(); void fadeOutAndRemove(d, l.carrot);
 };
 
 const endSession = async (d: RoundFlowDeps): Promise<void> => {
@@ -140,13 +146,13 @@ const onCorrect = (d: RoundFlowDeps, l: Live, idx: number): void => {
 const onWrong = (d: RoundFlowDeps, l: Live, idx: number, p: Vec): void => {
   void d.rabbits[idx]!.playShakeNo();
   d.session.startResolving(); d.session.recordMiss();
-  restAt(l, p);
+  restAt(d, l, p);
   continueOrEnd(d, l);
 };
 
 const onMiss = (d: RoundFlowDeps, l: Live, p: Vec): void => {
   d.session.startResolving(); d.session.recordMiss();
-  restAt(l, p);
+  restAt(d, l, p);
   continueOrEnd(d, l);
 };
 
@@ -175,11 +181,13 @@ const aimCb = (d: RoundFlowDeps, l: Live) => (): void => {
   if (d.session.snapshot().phase !== "aiming") return;
   const s = d.slingshot.carrotPosition();
   setBodyAt(l.carrot, s);
+  d.slingshot.drawElasticTo(s);
   l.preview.show(s, d.slingshot.releaseVelocity());
 };
 
 const releaseCb = (d: RoundFlowDeps, l: Live) => (v: Vec): void => {
   l.preview.clear();
+  d.slingshot.clearElastic();
   if (d.session.snapshot().phase !== "aiming") return;
   l.carrot.launch(v);
 };
@@ -196,22 +204,15 @@ const wireEvents = (d: RoundFlowDeps, l: Live): (() => void) => {
   const move = (e: FederatedPointerEvent): void =>
     l.input.handlePointerMove({ x: e.global.x, y: e.global.y });
   const up = (): void => l.input.handlePointerUp();
-  d.view.on("pointerdown", down).on("pointermove", move);
-  d.view.on("pointerup", up).on("pointerupoutside", up);
-  return () => {
-    d.view.off("pointerdown", down).off("pointermove", move);
-    d.view.off("pointerup", up).off("pointerupoutside", up);
-  };
+  d.view.on("pointerdown", down).on("pointermove", move).on("pointerup", up).on("pointerupoutside", up);
+  return () => d.view.off("pointerdown", down).off("pointermove", move).off("pointerup", up).off("pointerupoutside", up);
 };
 
 const buildLive = (d: RoundFlowDeps): Live => {
   const preview = createTrajectoryPreview();
   d.view.addChild(preview.view);
-  const live: Live = {
-    carrot: loadCarrot(d), preview,
-    input: undefined as unknown as SlingshotInput,
-    rested: [], resolving: false,
-  };
+  const stub = undefined as unknown as SlingshotInput;
+  const live: Live = { carrot: loadCarrot(d), preview, input: stub, resolving: false };
   live.input = createSlingshotInput({
     slingshot: d.slingshot, onAim: aimCb(d, live), onRelease: releaseCb(d, live),
   });

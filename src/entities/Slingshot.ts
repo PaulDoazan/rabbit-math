@@ -15,9 +15,15 @@ export interface Slingshot {
   aimAt(point: Vec): void;
   releaseVelocity(): Vec;
   reset(): void;
+  drawElasticTo(carrot: Vec): void;
+  clearElastic(): void;
 }
 
-const drawFrame = (g: Graphics) => {
+const PRONG_LEFT = { x: SLINGSHOT_ANCHOR.x - 22, y: SLINGSHOT_ANCHOR.y - 5 };
+const PRONG_RIGHT = { x: SLINGSHOT_ANCHOR.x + 22, y: SLINGSHOT_ANCHOR.y - 5 };
+const ELASTIC_COLOR = 0x222222;
+
+const drawFrame = (g: Graphics): void => {
   const ax = SLINGSHOT_ANCHOR.x;
   const ay = SLINGSHOT_ANCHOR.y;
   g.moveTo(ax - 6, GROUND_Y)
@@ -31,6 +37,16 @@ const drawFrame = (g: Graphics) => {
     .stroke({ width: STROKE.normal, color: COLORS.outline });
 };
 
+const drawElastic = (g: Graphics, carrot: Vec): void => {
+  g.clear();
+  g.moveTo(PRONG_LEFT.x, PRONG_LEFT.y)
+    .lineTo(carrot.x, carrot.y)
+    .stroke({ width: 3, color: ELASTIC_COLOR, cap: "round" });
+  g.moveTo(PRONG_RIGHT.x, PRONG_RIGHT.y)
+    .lineTo(carrot.x, carrot.y)
+    .stroke({ width: 3, color: ELASTIC_COLOR, cap: "round" });
+};
+
 const clampMagnitude = (dx: number, dy: number, max: number): Vec => {
   const m = Math.hypot(dx, dy);
   if (m <= max) return { x: dx, y: dy };
@@ -40,33 +56,39 @@ const clampMagnitude = (dx: number, dy: number, max: number): Vec => {
 interface State {
   view: Container;
   pos: Vec;
+  elastic: Graphics;
 }
+
+const aimAt = (state: State, point: Vec): void => {
+  const c = clampMagnitude(
+    point.x - SLINGSHOT_ANCHOR.x,
+    point.y - SLINGSHOT_ANCHOR.y,
+    SLINGSHOT_MAX_PULL,
+  );
+  state.pos = { x: SLINGSHOT_ANCHOR.x + c.x, y: SLINGSHOT_ANCHOR.y + c.y };
+};
+
+const releaseVelocityOf = (state: State): Vec => ({
+  x: (SLINGSHOT_ANCHOR.x - state.pos.x) * SLINGSHOT_POWER,
+  y: (SLINGSHOT_ANCHOR.y - state.pos.y) * SLINGSHOT_POWER,
+});
 
 const buildApi = (state: State): Slingshot => ({
   view: state.view,
   anchor: () => SLINGSHOT_ANCHOR,
   carrotPosition: () => state.pos,
-  aimAt: (point) => {
-    const c = clampMagnitude(
-      point.x - SLINGSHOT_ANCHOR.x,
-      point.y - SLINGSHOT_ANCHOR.y,
-      SLINGSHOT_MAX_PULL,
-    );
-    state.pos = { x: SLINGSHOT_ANCHOR.x + c.x, y: SLINGSHOT_ANCHOR.y + c.y };
-  },
-  releaseVelocity: () => ({
-    x: (SLINGSHOT_ANCHOR.x - state.pos.x) * SLINGSHOT_POWER,
-    y: (SLINGSHOT_ANCHOR.y - state.pos.y) * SLINGSHOT_POWER,
-  }),
-  reset: () => {
-    state.pos = { ...SLINGSHOT_ANCHOR };
-  },
+  aimAt: (point) => aimAt(state, point),
+  releaseVelocity: () => releaseVelocityOf(state),
+  reset: () => { state.pos = { ...SLINGSHOT_ANCHOR }; },
+  drawElasticTo: (carrot) => drawElastic(state.elastic, carrot),
+  clearElastic: () => state.elastic.clear(),
 });
 
 export function createSlingshot(): Slingshot {
   const view = new Container();
   const frame = new Graphics();
   drawFrame(frame);
-  view.addChild(frame);
-  return buildApi({ view, pos: { ...SLINGSHOT_ANCHOR } });
+  const elastic = new Graphics();
+  view.addChild(frame, elastic);
+  return buildApi({ view, pos: { ...SLINGSHOT_ANCHOR }, elastic });
 }
