@@ -1,6 +1,9 @@
 import { readJson, writeJson } from "./Storage";
 import type { Difficulty } from "../domain/DifficultyConfig";
-import { allPairs, type Pair } from "../domain/tables";
+import type { Pair } from "../domain/tables";
+
+const tableOf4 = (): Pair[] =>
+  Array.from({ length: 10 }, (_, i) => ({ a: 4, b: i + 1 }));
 
 export interface Settings {
   selectedPairs: Pair[];
@@ -15,7 +18,7 @@ export interface Settings {
 export const SETTINGS_KEY = "rabbit-math.settings";
 
 export const DEFAULT_SETTINGS: Settings = {
-  selectedPairs: allPairs(),
+  selectedPairs: tableOf4(),
   roundsPerSession: 10,
   carrotsPerRound: 3,
   difficulty: "medium",
@@ -55,7 +58,7 @@ export function validateSettings(s: Settings): Settings {
     ...s,
     roundsPerSession: Math.max(1, Math.floor(s.roundsPerSession)),
     carrotsPerRound: Math.max(1, Math.floor(s.carrotsPerRound)),
-    selectedPairs: s.selectedPairs.length >= 1 ? s.selectedPairs : allPairs(),
+    selectedPairs: s.selectedPairs.length >= 1 ? s.selectedPairs : tableOf4(),
   };
 }
 

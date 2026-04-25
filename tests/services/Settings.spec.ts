@@ -5,7 +5,6 @@ import {
   saveSettings,
   validateSettings,
 } from "../../src/services/Settings";
-import { allPairs } from "../../src/domain/tables";
 
 beforeEach(() => localStorage.clear());
 
@@ -14,8 +13,9 @@ describe("Settings defaults & round-trip", () => {
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
   });
 
-  it("default selection contains all 90 pairs", () => {
-    expect(DEFAULT_SETTINGS.selectedPairs).toHaveLength(90);
+  it("default selection is the table of 4 (10 pairs)", () => {
+    expect(DEFAULT_SETTINGS.selectedPairs).toHaveLength(10);
+    expect(DEFAULT_SETTINGS.selectedPairs.every((p) => p.a === 4)).toBe(true);
   });
 
   it("saveSettings then loadSettings round-trips", () => {
@@ -48,9 +48,9 @@ describe("Settings validation", () => {
     expect(fixed.carrotsPerRound).toBeGreaterThanOrEqual(1);
   });
 
-  it("validateSettings falls back to all 90 when selectedPairs is empty", () => {
+  it("validateSettings falls back to the default selection when empty", () => {
     const bad = { ...DEFAULT_SETTINGS, selectedPairs: [] };
     const fixed = validateSettings(bad);
-    expect(fixed.selectedPairs).toEqual(allPairs());
+    expect(fixed.selectedPairs).toEqual(DEFAULT_SETTINGS.selectedPairs);
   });
 });
