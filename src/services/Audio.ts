@@ -19,12 +19,14 @@ export interface AudioDeps {
   musicSrc?: string | undefined;
 }
 
+const BASE = import.meta.env.BASE_URL;
+
 const DEFAULT_SRC: Record<SoundId, string> = {
-  shot: "/assets/sounds/shot.mp3",
-  hit_correct: "/assets/sounds/hit_correct.mp3",
-  hit_wrong: "/assets/sounds/hit_wrong.mp3",
-  ground: "/assets/sounds/ground.mp3",
-  session_done: "/assets/sounds/session_done.mp3",
+  shot: `${BASE}assets/sounds/shot.mp3`,
+  hit_correct: `${BASE}assets/sounds/hit_correct.mp3`,
+  hit_wrong: `${BASE}assets/sounds/hit_wrong.mp3`,
+  ground: `${BASE}assets/sounds/ground.mp3`,
+  session_done: `${BASE}assets/sounds/session_done.mp3`,
 };
 
 interface AudioState {
@@ -34,7 +36,7 @@ interface AudioState {
 const startMusicImpl = (deps: AudioDeps, state: AudioState): void => {
   if (!deps.musicEnabled()) return;
   if (!state.music) {
-    state.music = new deps.AudioCtor(deps.musicSrc ?? "/assets/sounds/music.mp3");
+    state.music = new deps.AudioCtor(deps.musicSrc ?? `${BASE}assets/sounds/music.mp3`);
     state.music.loop = true;
   }
   void state.music.play();
