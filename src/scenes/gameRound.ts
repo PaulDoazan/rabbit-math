@@ -12,6 +12,7 @@ import { classifyHit } from "../systems/CollisionHandler";
 import type { Session } from "../domain/Session";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Settings } from "../services/Settings";
+import { playEndOfSession } from "./endOfSession";
 
 export interface Vec { x: number; y: number }
 
@@ -102,11 +103,20 @@ const restAt = (l: Live, p: Vec): void => {
   l.rested.push(l.carrot);
 };
 
+const endSession = async (d: RoundFlowDeps): Promise<void> => {
+  const s = d.session.snapshot();
+  await playEndOfSession({
+    fallenRabbits: d.rabbits.filter((r) => r.isFallen()),
+    sign: d.sign, score: s.score, totalRounds: s.totalRounds, delay: d.delay,
+  });
+  d.onSessionEnd();
+};
+
 const advance = async (d: RoundFlowDeps, l: Live): Promise<void> => {
   await d.delay(ROUND_ADVANCE_MS);
   if (d.session.snapshot().phase !== "round_over") return;
   d.session.nextRound();
-  if (d.session.isOver()) { d.onSessionEnd(); return; }
+  if (d.session.isOver()) { await endSession(d); return; }
   refresh(d); reload(d, l); l.resolving = false;
 };
 
