@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { COLORS, STROKE } from "../config/theme";
+import { tweenObject } from "./animations/Tween";
 
 export interface Aabb {
   minX: number;
@@ -20,6 +21,10 @@ export interface Rabbit {
   markFallen(): void;
   getCollisionAabb(): Aabb;
   position: Vec;
+  playShakeNo(): Promise<void>;
+  playBitePartialAndFall(landingY: number): Promise<void>;
+  playHopInPlace(): Promise<void>;
+  playRunAwayRight(offscreenX: number): Promise<void>;
 }
 
 const drawEars = (g: Graphics): void => {
@@ -119,6 +124,35 @@ const aabbAt = (pos: Vec): Aabb => ({
   maxY: pos.y + 30,
 });
 
+const animateShakeNo = async (view: Container, originalX: number): Promise<void> => {
+  for (let i = 0; i < 4; i++) {
+    await tweenObject(view.position, { x: originalX + 6 }, 60);
+    await tweenObject(view.position, { x: originalX - 6 }, 60);
+  }
+  view.position.x = originalX;
+};
+
+const animateBiteAndFall = async (state: State, landingY: number): Promise<void> => {
+  state.fallen = true;
+  await tweenObject(state.view.scale, { x: 1.05, y: 0.95 }, 80);
+  await tweenObject(state.view.scale, { x: 1, y: 1 }, 80);
+  state.position.y = landingY;
+  await tweenObject(state.view.position, { y: landingY }, 350);
+};
+
+const animateHopInPlace = async (state: State): Promise<void> => {
+  const baseY = state.position.y;
+  for (let i = 0; i < 3; i++) {
+    await tweenObject(state.view.position, { y: baseY - 22 }, 180);
+    await tweenObject(state.view.position, { y: baseY }, 160);
+  }
+};
+
+const animateRunAwayRight = async (state: State, offscreenX: number): Promise<void> => {
+  state.position.x = offscreenX;
+  await tweenObject(state.view.position, { x: offscreenX }, 1000);
+};
+
 const buildApi = (state: State): Rabbit => ({
   view: state.view,
   position: state.position,
@@ -132,6 +166,10 @@ const buildApi = (state: State): Rabbit => ({
     state.fallen = true;
   },
   getCollisionAabb: () => aabbAt(state.position),
+  playShakeNo: () => animateShakeNo(state.view, state.position.x),
+  playBitePartialAndFall: (y) => animateBiteAndFall(state, y),
+  playHopInPlace: () => animateHopInPlace(state),
+  playRunAwayRight: (x) => animateRunAwayRight(state, x),
 });
 
 export function createRabbit(opts: { position: Vec }): Rabbit {

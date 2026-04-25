@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { createRabbit } from "../../src/entities/Rabbit";
+import { tickTweens } from "../../src/entities/animations/Tween";
+
+const runTweens = async (durationMs: number) => {
+  const start = performance.now();
+  for (let t = 0; t <= durationMs; t += 16) {
+    tickTweens(start + t);
+    await Promise.resolve();
+  }
+};
 
 describe("Rabbit number", () => {
   it("setNumber stores the number returned by getNumber", () => {
@@ -30,5 +39,36 @@ describe("Rabbit collision aabb", () => {
     expect(box.minY).toBeLessThan(box.maxY);
     expect(box.minX).toBeGreaterThan(150);
     expect(box.maxX).toBeLessThan(250);
+  });
+});
+
+describe("Rabbit playShakeNo", () => {
+  it("resolves without changing fallen state", async () => {
+    const r = createRabbit({ position: { x: 100, y: 100 } });
+    const p = r.playShakeNo();
+    await runTweens(1200);
+    await p;
+    expect(r.isFallen()).toBe(false);
+  });
+});
+
+describe("Rabbit playBitePartialAndFall", () => {
+  it("sets isFallen true and updates position.y", async () => {
+    const r = createRabbit({ position: { x: 100, y: 100 } });
+    const p = r.playBitePartialAndFall(330);
+    await runTweens(800);
+    await p;
+    expect(r.isFallen()).toBe(true);
+    expect(r.position.y).toBe(330);
+  });
+});
+
+describe("Rabbit playRunAwayRight", () => {
+  it("moves position.x to the off-screen target", async () => {
+    const r = createRabbit({ position: { x: 100, y: 330 } });
+    const p = r.playRunAwayRight(900);
+    await runTweens(1200);
+    await p;
+    expect(r.position.x).toBeGreaterThanOrEqual(900);
   });
 });
