@@ -14,6 +14,7 @@ import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Settings } from "../services/Settings";
 import { playEndOfSession } from "./endOfSession";
 import { fadeOutAndRemove, purgeOwnedBodies } from "./gameRoundCleanup";
+import { assignNumbersForRound, playMancheTransition } from "./manche";
 
 export interface Vec { x: number; y: number }
 
@@ -85,8 +86,7 @@ const findHit = (d: RoundFlowDeps, p: Vec): number => {
 
 const refresh = (d: RoundFlowDeps): void => {
   const q = d.session.currentQuestion();
-  d.sign.setQuestion(q);
-  d.rabbits.forEach((r, i) => r.setNumber(q.choices[i] ?? 0));
+  d.sign.setQuestion(q); assignNumbersForRound(d.rabbits, q);
   d.counter.setRemaining(d.settings.carrotsPerRound);
 };
 
@@ -119,6 +119,8 @@ const advance = async (d: RoundFlowDeps, l: Live): Promise<void> => {
   d.session.nextRound();
   if (l.destroyed) return;
   if (d.session.isOver()) return void endSession(d, l);
+  if (d.rabbits.every((r) => r.isFallen())) await playMancheTransition({ view: d.view, rabbits: d.rabbits });
+  if (l.destroyed) return;
   refresh(d); reload(d, l); l.resolving = false;
 };
 
