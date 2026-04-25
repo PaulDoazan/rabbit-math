@@ -69,8 +69,8 @@ const within = (p: Vec, t: Vec): boolean => {
   return dx * dx + dy * dy <= HIT_RADIUS_SQ;
 };
 
-const offScreen = (p: Vec): boolean =>
-  p.y >= GROUND_Y || p.x < 0 || p.x > DESIGN_WIDTH;
+const isLost = (p: Vec, v: Vec): boolean =>
+  p.x < 0 || p.x > DESIGN_WIDTH || (p.y >= GROUND_Y && v.y > 0);
 
 const aabbsOf = (rs: readonly Rabbit[]) =>
   rs.map((r) => r.isFallen() ? { minX: 0, maxX: 0, minY: 0, maxY: 0 } : r.getCollisionAabb());
@@ -157,10 +157,11 @@ const resolveRabbit = (d: RoundFlowDeps, l: Live, idx: number, p: Vec): void => 
 };
 
 const checkCollision = (d: RoundFlowDeps, l: Live): void => {
-  const p = { x: l.carrot.body.position.x, y: l.carrot.body.position.y };
+  const body = l.carrot.body;
+  const p = { x: body.position.x, y: body.position.y };
   const idx = findHit(d, p);
   if (idx >= 0) { resolveRabbit(d, l, idx, p); return; }
-  if (offScreen(p)) { l.resolving = true; onMiss(d, l, p); }
+  if (isLost(p, body.velocity)) { l.resolving = true; onMiss(d, l, p); }
 };
 
 const tickFlow = (d: RoundFlowDeps, l: Live) => (): void => {
