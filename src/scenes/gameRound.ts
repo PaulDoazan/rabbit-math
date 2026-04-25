@@ -13,7 +13,7 @@ import type { Session } from "../domain/Session";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Settings } from "../services/Settings";
 import { playEndOfSession } from "./endOfSession";
-import { tweenObject } from "../entities/animations/Tween";
+import { fadeOutAndRemove, purgeCarrotBodies } from "./gameRoundCleanup";
 
 export interface Vec { x: number; y: number }
 
@@ -95,13 +95,6 @@ const removeCarrot = (d: RoundFlowDeps, l: Live): void => {
 const reload = (d: RoundFlowDeps, l: Live): void => {
   removeCarrot(d, l);
   l.carrot = loadCarrot(d);
-};
-
-const fadeOutAndRemove = async (d: RoundFlowDeps, c: Carrot): Promise<void> => {
-  await d.delay(1000);
-  await tweenObject(c.view, { alpha: 0 }, 400);
-  d.physics.removeBody(c.body);
-  c.view.parent?.removeChild(c.view);
 };
 
 const restAt = (d: RoundFlowDeps, l: Live, p: Vec): void => {
@@ -219,6 +212,11 @@ const buildLive = (d: RoundFlowDeps): Live => {
   return live;
 };
 
+const teardown = (d: RoundFlowDeps, detach: () => void): void => {
+  detach();
+  purgeCarrotBodies(d.physics);
+};
+
 export function installRoundFlow(deps: RoundFlowDeps): RoundFlow {
   setupView(deps.view);
   const live = buildLive(deps);
@@ -227,6 +225,6 @@ export function installRoundFlow(deps: RoundFlowDeps): RoundFlow {
     tick: tickFlow(deps, live),
     forceCorrectHit: () => { deps.session.startResolving(); deps.session.recordHit(); },
     forceWrongHit: () => { deps.session.startResolving(); deps.session.recordMiss(); },
-    destroy: () => detach(),
+    destroy: () => teardown(deps, detach),
   };
 }
