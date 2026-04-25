@@ -2,7 +2,22 @@ import { Container } from "pixi.js";
 import type { Settings } from "../services/Settings";
 import type { Scene } from "../core/Scene";
 import type { Difficulty } from "../domain/DifficultyConfig";
-import type { TableListId } from "../domain/tables";
+import { TABLE_LISTS, type TableListId } from "../domain/tables";
+import {
+  createPanelBackground,
+  createPanelTitle,
+  createCycleRow,
+  createCloseButton,
+  createConfirmPrompt,
+  TABLE_IDS,
+  DIFFICULTIES,
+  ROUNDS_OPTIONS,
+  CARROTS_OPTIONS,
+  cycle,
+  sessionImpactingChanged,
+  onOff,
+  difficultyLabel,
+} from "./SettingsPanel";
 
 export interface SettingsSceneDeps {
   initial: Settings;
@@ -59,8 +74,128 @@ const buildSceneShell = (view: Container): Scene => ({
   destroy: () => view.destroy({ children: true }),
 });
 
+interface RowCtx {
+  view: Container;
+  state: State;
+  update: (patch: Partial<Settings>) => void;
+}
+
+const addCycleRow = <T>(
+  ctx: RowCtx,
+  index: number,
+  label: string,
+  options: { values: readonly T[]; get: () => T; render: (v: T) => string; apply: (v: T) => void },
+): void => {
+  const row = createCycleRow(label, index);
+  row.setValue(options.render(options.get()));
+  row.onTap(() => {
+    const next = cycle(options.values, options.get());
+    options.apply(next);
+    row.setValue(options.render(next));
+  });
+  ctx.view.addChild(row.view);
+};
+
+const addTableRow = (ctx: RowCtx): void =>
+  addCycleRow<TableListId>(ctx, 0, "Liste de calculs", {
+    values: TABLE_IDS,
+    get: () => ctx.state.current.tableListId,
+    render: (v) => TABLE_LISTS[v].label,
+    apply: (v) => ctx.update({ tableListId: v }),
+  });
+
+const addDifficultyRow = (ctx: RowCtx): void =>
+  addCycleRow<Difficulty>(ctx, 1, "Difficulté", {
+    values: DIFFICULTIES,
+    get: () => ctx.state.current.difficulty,
+    render: difficultyLabel,
+    apply: (v) => ctx.update({ difficulty: v }),
+  });
+
+const addRoundsRow = (ctx: RowCtx): void =>
+  addCycleRow<number>(ctx, 2, "Manches par session", {
+    values: ROUNDS_OPTIONS,
+    get: () => ctx.state.current.roundsPerSession,
+    render: (v) => String(v),
+    apply: (v) => ctx.update({ roundsPerSession: v }),
+  });
+
+const addCarrotsRow = (ctx: RowCtx): void =>
+  addCycleRow<number>(ctx, 3, "Carottes par manche", {
+    values: CARROTS_OPTIONS,
+    get: () => ctx.state.current.carrotsPerRound,
+    render: (v) => String(v),
+    apply: (v) => ctx.update({ carrotsPerRound: v }),
+  });
+
+const addToggleRow = (
+  ctx: RowCtx,
+  index: number,
+  label: string,
+  get: () => boolean,
+  apply: (v: boolean) => void,
+): void =>
+  addCycleRow<boolean>(ctx, index, label, {
+    values: [false, true] as const,
+    get,
+    render: onOff,
+    apply,
+  });
+
+const addToggleRows = (ctx: RowCtx): void => {
+  addToggleRow(ctx, 4, "Mode tap (accessibilité)",
+    () => ctx.state.current.tapMode, (v) => ctx.update({ tapMode: v }));
+  addToggleRow(ctx, 5, "Bruitages",
+    () => ctx.state.current.soundEnabled, (v) => ctx.update({ soundEnabled: v }));
+  addToggleRow(ctx, 6, "Musique",
+    () => ctx.state.current.musicEnabled, (v) => ctx.update({ musicEnabled: v }));
+};
+
+const buildAllRows = (ctx: RowCtx): void => {
+  addTableRow(ctx);
+  addDifficultyRow(ctx);
+  addRoundsRow(ctx);
+  addCarrotsRow(ctx);
+  addToggleRows(ctx);
+};
+
+const installCloseFlow = (
+  ctx: RowCtx,
+  initial: Settings,
+  onClose: (s: Settings, r: boolean) => void,
+): void => {
+  let close: Container | null = null;
+  const closeNow = (restart: boolean) => onClose(ctx.state.current, restart);
+  const showConfirm = () => {
+    if (close) ctx.view.removeChild(close);
+    const prompt = createConfirmPrompt("Recommencer la partie ?",
+      () => closeNow(true), () => closeNow(false));
+    ctx.view.addChild(prompt);
+  };
+  close = createCloseButton("Fermer", () =>
+    sessionImpactingChanged(initial, ctx.state.current) ? showConfirm() : closeNow(false));
+  ctx.view.addChild(close);
+};
+
+const buildVisualPanel = (
+  view: Container,
+  state: State,
+  deps: SettingsSceneDeps,
+): void => {
+  view.addChild(createPanelBackground());
+  view.addChild(createPanelTitle("Paramètres"));
+  const ctx: RowCtx = {
+    view,
+    state,
+    update: (patch) => applyPatch(state, deps, patch),
+  };
+  buildAllRows(ctx);
+  installCloseFlow(ctx, deps.initial, deps.onClose);
+};
+
 export function createSettingsScene(deps: SettingsSceneDeps): SettingsScene {
   const view = new Container();
   const state: State = { current: { ...deps.initial } };
+  buildVisualPanel(view, state, deps);
   return { ...buildSceneShell(view), ...buildSetters(state, deps) };
 }

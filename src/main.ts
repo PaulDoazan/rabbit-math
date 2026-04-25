@@ -3,28 +3,44 @@ import { createApp } from "./core/App";
 import { createPhysicsWorld } from "./core/PhysicsWorld";
 import { createSceneManager } from "./core/SceneManager";
 import { createGameScene } from "./scenes/GameScene";
+import { createSettingsScene } from "./scenes/SettingsScene";
 import { loadSettings, saveSettings, type Settings } from "./services/Settings";
 import { createAudio } from "./services/Audio";
 import { installOrientationLock } from "./ui/OrientationLock";
 import { tickTweens } from "./entities/animations/Tween";
 
-const startGame = (
-  sm: ReturnType<typeof createSceneManager>,
-  physics: ReturnType<typeof createPhysicsWorld>,
-  settings: Settings,
-): void => {
-  const game = createGameScene({
-    settings,
-    physics,
-    onOpenSettings: () => {
-      console.warn("Settings scene not yet wired (coming in Task 33).");
+type SM = ReturnType<typeof createSceneManager>;
+type Physics = ReturnType<typeof createPhysicsWorld>;
+type SettingsRef = { current: Settings };
+
+const openSettings = (sm: SM, physics: Physics, ref: SettingsRef): void => {
+  const settings = createSettingsScene({
+    initial: ref.current,
+    onChange: (next) => {
+      ref.current = next;
+      saveSettings(next);
     },
-    onSessionRestart: () => startGame(sm, physics, settings),
+    onClose: (next, restart) => {
+      ref.current = next;
+      saveSettings(next);
+      sm.closeOverlay();
+      if (restart) startGame(sm, physics, ref);
+    },
+  });
+  sm.openOverlay(settings);
+};
+
+const startGame = (sm: SM, physics: Physics, ref: SettingsRef): void => {
+  const game = createGameScene({
+    settings: ref.current,
+    physics,
+    onOpenSettings: () => openSettings(sm, physics, ref),
+    onSessionRestart: () => startGame(sm, physics, ref),
   });
   sm.goTo(game);
 };
 
-const setupAudio = (settingsRef: { current: Settings }) =>
+const setupAudio = (settingsRef: SettingsRef) =>
   createAudio({
     AudioCtor: Audio,
     sfxEnabled: () => settingsRef.current.soundEnabled,
@@ -42,7 +58,7 @@ async function main(): Promise<void> {
   saveSettings(settingsRef.current);
   const audio = setupAudio(settingsRef);
   audio.startMusic();
-  startGame(sm, physics, settingsRef.current);
+  startGame(sm, physics, settingsRef);
   Ticker.shared.add((t) => {
     physics.step(t.deltaMS);
     sm.tick(t.deltaMS);
