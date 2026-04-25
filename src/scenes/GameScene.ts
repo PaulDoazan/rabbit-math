@@ -1,4 +1,5 @@
 import { Container } from "pixi.js";
+import { createBackground, type Background } from "../entities/Background";
 import { createTree, type Tree } from "../entities/Tree";
 import { createRabbit, type Rabbit } from "../entities/Rabbit";
 import { createSlingshot, type Slingshot } from "../entities/Slingshot";
@@ -27,6 +28,7 @@ export interface GameScene extends Scene {
 
 interface Parts {
   view: Container;
+  background: Background;
   tree: Tree;
   slingshot: Slingshot;
   sign: MathSign;
@@ -55,6 +57,7 @@ const buildRabbits = (choices: readonly number[]): Rabbit[] =>
 
 const assembleScene = (deps: GameSceneDeps): Parts => {
   const view = new Container();
+  const background = createBackground();
   const tree = createTree();
   const slingshot = createSlingshot();
   const sign = createMathSign();
@@ -63,10 +66,11 @@ const assembleScene = (deps: GameSceneDeps): Parts => {
   const session = newSession(deps.settings);
   const rabbits = buildRabbits(session.currentQuestion().choices);
   sign.setQuestion(session.currentQuestion());
-  return { view, tree, slingshot, sign, counter, gear, rabbits, session };
+  return { view, background, tree, slingshot, sign, counter, gear, rabbits, session };
 };
 
 const attachChildren = (parts: Parts): void => {
+  parts.view.addChild(parts.background.view);
   parts.view.addChild(parts.tree.view);
   parts.view.addChild(parts.slingshot.view);
   parts.view.addChild(parts.sign.view);
