@@ -69,8 +69,7 @@ Les contrastes respectent WCAG AA minimum pour tous les éléments porteurs d'in
 Lapins **inspirés du style Bunny Suicides d'Andy Riley** : silhouettes rondes, grandes oreilles, trait noir épais. Couleur ajoutée par rapport à l'original (palette ci-dessus). Détails du visage et de la posture :
 
 - **Deux yeux** ronds noirs.
-- **Bouche en forme de petit "Y"** (deux traits formant un Y court sous le nez).
-- **Petit nez** (forme losange ou point arrondi).
+- **Bouche en forme de petit "Y"** (deux traits formant un Y court, juste sous les yeux). Pas de nez.
 - **Quatre pattes** qui tiennent la **pancarte** :
   - 2 pattes au-dessus de la pancarte (par le haut)
   - 2 pattes en dessous (par le bas)
@@ -81,8 +80,8 @@ Lapins **inspirés du style Bunny Suicides d'Andy Riley** : silhouettes rondes, 
 - **Gauche** : fronde posée sur l'herbe, carotte chargée.
 - **Droite** : arbre central avec **4 branches** ; 4 lapins perchés à des hauteurs distinctes (branche basse, branche médiane gauche, branche médiane droite, sommet).
 - **Haut centre** : `MathSign`, pancarte avec une **largeur adaptative**. Affiche le calcul en cours (ex. "7 × 8 = ?") en mode jeu, et "X / N bonnes réponses" en mode fin de session.
-- **Haut gauche** : indicateur des carottes restantes (3 petites icônes qui s'estompent à chaque tir).
-- **Haut droite** : icône engrenage pour ouvrir les paramètres.
+- **Haut gauche** : icône **engrenage** pour ouvrir les paramètres. Style "chunky" : 8 dents rectangulaires épaisses (10 × 11 unités, coins légèrement arrondis) autour d'un corps circulaire (rayon 16) avec un hub central percé (rayon 6).
+- **Au sol, à droite de la fronde** : compteur des **carottes restantes**, représentées comme **3 carottes posées sur l'herbe inclinées à 40°** (rotation autour de leur centre). Chaque carotte tirée fait disparaître la première de la pile (de gauche à droite) avec un fade-out court.
 
 **Placement des lapins tombés** : chaque lapin atteint correctement tombe **à la verticale de sa branche d'origine**. Les lapins issus de manches successives qui partagent la même position de branche **peuvent visuellement se chevaucher** (le plus récent par-dessus). Les lapins tombés s'accumulent dans la zone sous l'arbre jusqu'à la fin de la session.
 
@@ -344,7 +343,7 @@ Le `domain/` ne dépend d'aucune bibliothèque tierce ni de `core/` / `entities/
 [6] Slingshot + carotte chargée            ← dynamique
 [7] Carrot en vol                          ← dynamique (0 ou 1)
 [8] TrajectoryPreview (pointillés)         ← dynamique (visible en phase AIMING)
-[9] HUD (MathSign, CarrotCounter, Gear)    ← static
+[9] HUD (MathSign top-center, Gear top-left, CarrotCounter on grass) ← static
 [10] Overlays (SettingsScene)              ← à la demande
 ```
 
@@ -353,11 +352,11 @@ Le `domain/` ne dépend d'aucune bibliothèque tierce ni de `core/` / `entities/
 | Entité | Sprite | Corps Matter | Méthodes clés |
 |---|---|---|---|
 | `Tree` | PNG (tronc + branches + feuillage) | non | `getPerchPositions(): Vector[]` |
-| `Rabbit` | Graphics (corps + oreilles + 2 yeux + nez + bouche en Y + pancarte tenue par 4 pattes + texte) | rectangle statique (capteur) | `setNumber(n)`, `playShakeNo()`, `playBitePartialAndFall(landingY)`, `playHopInPlace()`, `playRunAwayRight()` |
+| `Rabbit` | Graphics (corps + oreilles + 2 yeux + bouche en Y + pancarte tenue par 4 pattes + texte) | rectangle statique (capteur) | `setNumber(n)`, `playShakeNo()`, `playBitePartialAndFall(landingY)`, `playHopInPlace()`, `playRunAwayRight()` |
 | `Slingshot` | Graphics (support + élastique dessiné) | non (cinématique) | `load(carrot)`, `onDragStart/Move/End`, `release() → Vector` |
 | `Carrot` | Graphics | cercle dynamique | `launch(velocity)`, `onHitRabbit(r)`, `onHitGround()`, `restAtGround()` |
 | `MathSign` | Graphics + Text | non | `setQuestion(q: Question)`, `setEndOfSessionMessage(score, total)`, `tweenWidthTo(w)` |
-| `CarrotCounter` | Graphics (N icônes) | non | `setRemaining(n: number)` |
+| `CarrotCounter` | Graphics (N carottes posées à 40° sur l'herbe à droite de la fronde) | non | `setRemaining(n: number)` (la carotte en surplus disparaît avec un fade-out court) |
 | `GearButton` | Graphics | non | `onTap → openSettings()` |
 
 **État vivant côté `GameScene`** : `GameScene` tient une **liste `fallenRabbits: Rabbit[]`** qui s'enrichit à chaque manche réussie. Ces lapins sont déplacés du conteneur "tree-rabbits" vers le conteneur "ground-rabbits" (z-order entre l'arbre et la fronde) après leur chute. Ils survivent au changement de manche, sont collectivement animés à la fin de la session, puis détruits lors du rafraîchissement.
