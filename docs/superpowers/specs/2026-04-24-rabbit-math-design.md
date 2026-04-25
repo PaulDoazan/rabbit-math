@@ -27,16 +27,24 @@ Le jeu s'exécute en **vue paysage sur téléphone**, est entièrement client (p
 
 ### Résolution d'un tir
 
-- **Touche le bon lapin** → le lapin attrape la carotte, la mange, saute hors de l'arbre et s'enfuit en courant. Score +1. Manche gagnée. Après **1.2 s** d'animation, passage à la manche suivante.
+- **Touche le bon lapin** → le lapin attrape la carotte, **mord juste un bout** (la carotte n'est plus entière mais réduite à un fragment qu'il garde dans la patte), puis **tombe** depuis sa branche directement à la verticale et **reste posé sur l'herbe** à cet endroit (chute simulée par Matter ou tween rapide ; il s'immobilise au contact du sol, debout, fragment de carotte en main). Score +1. Manche gagnée. Après **1.2 s** d'animation, passage à la manche suivante.
 - **Touche un mauvais lapin** → ce lapin secoue la tête "non", la carotte rebondit au sol. Carotte consommée. Si carottes restantes > 0, la fronde est rechargée ; sinon, manche perdue.
 - **Tombe au sol sans toucher aucun lapin** → comportement identique à un mauvais tir.
-- **Manche perdue (toutes les carottes ratées)** → pas de score pour cette manche, passage à la suivante après 1.2 s.
+- **Manche perdue (toutes les carottes ratées)** → pas de score pour cette manche, **aucun lapin ne tombe**, aucun feedback visuel particulier (l'absence de lapin au sol pour cette manche est en soi le signal). Passage à la suivante après 1.2 s.
+
+Les **carottes ratées** (mauvais lapin ou sol) **restent visibles au sol** pour le reste de la session (sauf celles qui sortent hors champ). Elles s'accumulent comme indice du nombre de tirs ratés.
 
 ### Fin de session
 
-Après les N manches, affichage d'un écran simple : "X / N bonnes réponses" + bouton "Rejouer" + bouton "Paramètres".
+Après les N manches, **pas d'écran séparé**. Le déroulé se fait *in situ* sur la scène de jeu :
 
-Aucun historique de score n'est persisté.
+1. Tous les lapins tombés au sol (ceux ayant reçu une carotte) **sautillent en place** en synchrone (3 petits bonds).
+2. Pendant qu'ils sautillent, la pancarte du calcul (en haut au centre) **s'élargit dynamiquement** et affiche **"X / N bonnes réponses"** à la place de la multiplication.
+3. Les lapins **partent tous ensemble vers la droite** de l'écran (translation + scale X alterné pour la course).
+4. **1 seconde de pause** après leur disparition complète (l'herbe reste avec les carottes ratées, mais plus de lapins).
+5. Le jeu **se rafraîchit automatiquement** : nouvelle session générée avec les mêmes paramètres, retour à la phase `AIMING` de la manche 1. La pancarte reprend sa largeur normale et affiche le nouveau calcul.
+
+Aucun historique de score n'est persisté. Aucun bouton "Rejouer" n'est nécessaire (rafraîchissement auto).
 
 ---
 
@@ -58,15 +66,25 @@ Les contrastes respectent WCAG AA minimum pour tous les éléments porteurs d'in
 
 ### Personnages
 
-Lapins **inspirés du style Bunny Suicides d'Andy Riley** : silhouettes rondes, grandes oreilles, trait noir épais, pas de détails faciaux excessifs (un œil, un nez suffisent). Couleur ajoutée par rapport à l'original (palette ci-dessus).
+Lapins **inspirés du style Bunny Suicides d'Andy Riley** : silhouettes rondes, grandes oreilles, trait noir épais. Couleur ajoutée par rapport à l'original (palette ci-dessus). Détails du visage et de la posture :
+
+- **Deux yeux** ronds noirs.
+- **Bouche en forme de petit "Y"** (deux traits formant un Y court sous le nez).
+- **Petit nez** (forme losange ou point arrondi).
+- **Quatre pattes** qui tiennent la **pancarte** :
+  - 2 pattes au-dessus de la pancarte (par le haut)
+  - 2 pattes en dessous (par le bas)
+  - La pancarte est **centrée horizontalement** sur le corps du lapin (axe X).
 
 ### Composition de l'écran (résolution logique 844 × 390)
 
 - **Gauche** : fronde posée sur l'herbe, carotte chargée.
 - **Droite** : arbre central avec **4 branches** ; 4 lapins perchés à des hauteurs distinctes (branche basse, branche médiane gauche, branche médiane droite, sommet).
-- **Haut centre** : pancarte affichant le calcul (ex. "7 × 8 = ?").
+- **Haut centre** : `MathSign`, pancarte avec une **largeur adaptative**. Affiche le calcul en cours (ex. "7 × 8 = ?") en mode jeu, et "X / N bonnes réponses" en mode fin de session.
 - **Haut gauche** : indicateur des carottes restantes (3 petites icônes qui s'estompent à chaque tir).
 - **Haut droite** : icône engrenage pour ouvrir les paramètres.
+
+**Placement des lapins tombés** : chaque lapin atteint correctement tombe **à la verticale de sa branche d'origine**. Les lapins issus de manches successives qui partagent la même position de branche **peuvent visuellement se chevaucher** (le plus récent par-dessus). Les lapins tombés s'accumulent dans la zone sous l'arbre jusqu'à la fin de la session.
 
 ### Assets
 
@@ -78,10 +96,14 @@ Lapins **inspirés du style Bunny Suicides d'Andy Riley** : silhouettes rondes, 
 
 | Événement | Animation |
 |---|---|
-| Réussite | Le lapin attrape la carotte, scale sur la bouche (mâche), saute hors de l'arbre en parabole, sort de l'écran en courant (translation + scale X alterné) |
-| Échec (mauvais lapin) | Secousse de tête rapide (oscillation horizontale), la carotte rebondit et tombe via Matter |
-| Tir | Pulse léger de la carotte chargée, trajectoire mise à jour à chaque frame pendant le drag |
-| Changement de manche | Fondu court + léger bounce à l'apparition des nouveaux lapins |
+| Réussite (impact) | Le lapin attrape la carotte, **mord un bout** (scale rapide sur la bouche, la carotte est remplacée par un sprite "fragment de carotte" tenu dans la patte). |
+| Réussite (chute) | Le lapin tombe à la verticale de sa branche jusqu'à l'herbe, atterrit et **s'immobilise debout** (idle léger : oreilles qui frémissent), fragment de carotte toujours en main. |
+| Échec (mauvais lapin) | Secousse de tête rapide (oscillation horizontale), la carotte rebondit et tombe via Matter, puis reste au sol. |
+| Tir | Pulse léger de la carotte chargée, trajectoire mise à jour à chaque frame pendant le drag. |
+| Changement de manche | Les lapins encore dans l'arbre disparaissent par fondu, 4 nouveaux lapins apparaissent par fondu + léger bounce sur les branches. Les lapins déjà tombés au sol restent en place. |
+| Fin de session — sautillement | Tous les lapins tombés bondissent **en synchrone** : 3 petits sauts (translation Y + squash sur l'atterrissage). |
+| Fin de session — fuite | Les lapins partent tous ensemble vers la droite : translation X + scale X alterné (effet course). Disparition à la sortie d'écran. |
+| Fin de session — pancarte | Le `MathSign` s'élargit (tween sur la width) et affiche "X / N bonnes réponses". Après le départ des lapins et 1 s de pause, retour à la largeur normale et nouveau calcul. |
 
 ---
 
@@ -233,8 +255,7 @@ rabbit-math/
 │   │   └── Scene.ts            # interface Scene
 │   ├── scenes/
 │   │   ├── GameScene.ts
-│   │   ├── SettingsScene.ts
-│   │   └── ResultScene.ts
+│   │   └── SettingsScene.ts
 │   ├── entities/
 │   │   ├── Rabbit.ts
 │   │   ├── Carrot.ts
@@ -324,7 +345,7 @@ Le `domain/` ne dépend d'aucune bibliothèque tierce ni de `core/` / `entities/
 [7] Carrot en vol                          ← dynamique (0 ou 1)
 [8] TrajectoryPreview (pointillés)         ← dynamique (visible en phase AIMING)
 [9] HUD (MathSign, CarrotCounter, Gear)    ← static
-[10] Overlays (SettingsScene, ResultScene) ← à la demande
+[10] Overlays (SettingsScene)              ← à la demande
 ```
 
 ### Entités
@@ -332,12 +353,14 @@ Le `domain/` ne dépend d'aucune bibliothèque tierce ni de `core/` / `entities/
 | Entité | Sprite | Corps Matter | Méthodes clés |
 |---|---|---|---|
 | `Tree` | PNG (tronc + branches + feuillage) | non | `getPerchPositions(): Vector[]` |
-| `Rabbit` | Graphics (corps + oreilles + pancarte + texte) | rectangle statique (capteur) | `setNumber(n)`, `playEatAndRunAway()`, `playShakeNo()` |
+| `Rabbit` | Graphics (corps + oreilles + 2 yeux + nez + bouche en Y + pancarte tenue par 4 pattes + texte) | rectangle statique (capteur) | `setNumber(n)`, `playShakeNo()`, `playBitePartialAndFall(landingY)`, `playHopInPlace()`, `playRunAwayRight()` |
 | `Slingshot` | Graphics (support + élastique dessiné) | non (cinématique) | `load(carrot)`, `onDragStart/Move/End`, `release() → Vector` |
-| `Carrot` | Graphics | cercle dynamique | `launch(velocity)`, `onHitRabbit(r)`, `onHitGround()` |
-| `MathSign` | Graphics + Text | non | `setQuestion(q: Question)` |
+| `Carrot` | Graphics | cercle dynamique | `launch(velocity)`, `onHitRabbit(r)`, `onHitGround()`, `restAtGround()` |
+| `MathSign` | Graphics + Text | non | `setQuestion(q: Question)`, `setEndOfSessionMessage(score, total)`, `tweenWidthTo(w)` |
 | `CarrotCounter` | Graphics (N icônes) | non | `setRemaining(n: number)` |
 | `GearButton` | Graphics | non | `onTap → openSettings()` |
+
+**État vivant côté `GameScene`** : `GameScene` tient une **liste `fallenRabbits: Rabbit[]`** qui s'enrichit à chaque manche réussie. Ces lapins sont déplacés du conteneur "tree-rabbits" vers le conteneur "ground-rabbits" (z-order entre l'arbre et la fronde) après leur chute. Ils survivent au changement de manche, sont collectivement animés à la fin de la session, puis détruits lors du rafraîchissement.
 
 ### Entrée utilisateur
 
@@ -361,7 +384,14 @@ AIMING ── (release ou tap) ──► RESOLVING
    └──── (next round) ────────────┤
                                   │ (isLastRound)
                                   ▼
-                            SESSION_OVER ──► ResultScene
+                            SESSION_OVER
+                                  │
+                                  │ (animation de fin terminée + 1 s)
+                                  ▼
+                            (refresh: nouvelle session)
+                                  │
+                                  ▼
+                              AIMING (manche 1 de la nouvelle session)
 ```
 
 Transitions :
@@ -369,7 +399,8 @@ Transitions :
 - **RESOLVING → AIMING** : tir raté mais carottes restantes > 0 → on recharge.
 - **RESOLVING → ROUND_OVER** : touche bonne réponse, OU ratage avec carottes épuisées.
 - **ROUND_OVER → AIMING** : après 1.2 s d'animation, `Session.nextRound()`.
-- **ROUND_OVER → SESSION_OVER** : `Session.isLastRound()` → transition vers `ResultScene`.
+- **ROUND_OVER → SESSION_OVER** : `Session.isLastRound()` → déclenche la séquence de fin (in situ, pas de scène séparée).
+- **SESSION_OVER → AIMING (nouvelle session)** : à la fin de la séquence de fin (sautillement + course + 1 s de pause), la `GameScene` détruit les lapins tombés et les carottes au sol, regénère une session avec les paramètres courants, et repart sur la manche 1.
 
 ### Séquence d'une manche (détaillée)
 
@@ -380,10 +411,27 @@ Transitions :
 5. Release → phase = `RESOLVING`. La carotte devient un corps Matter dynamique avec la vélocité initiale. La fronde perd sa carotte.
 6. Le moteur physique simule le vol. Collision possible avec un `Rabbit` ou avec le sol.
 7. `CollisionHandler.onCarrotHit(target)` :
-   - Si `target` est un `Rabbit` et `rabbit.number === question.answer` → `Session.recordHit()`, `rabbit.playEatAndRunAway()`, phase = `ROUND_OVER`.
-   - Si `target` est un `Rabbit` mais mauvaise réponse → `rabbit.playShakeNo()`, `Session.recordMiss()`. Si carottes restantes > 0 → recharge la fronde, phase = `AIMING`. Sinon phase = `ROUND_OVER`.
-   - Si `target` est le sol → identique à un ratage.
-8. `ROUND_OVER` : timer 1.2 s, puis `Session.nextRound()` ou `goToResult()`.
+   - Si `target` est un `Rabbit` et `rabbit.number === question.answer` → `Session.recordHit()`, on **détache la carotte de la scène volante**, on la transforme en "fragment de carotte" tenu dans la patte du lapin, on appelle `rabbit.playBitePartialAndFall(groundY)` qui mord, puis tombe à la verticale de la branche jusqu'au sol, où il s'immobilise. Le lapin est ajouté à `GameScene.fallenRabbits`. Phase = `ROUND_OVER`.
+   - Si `target` est un `Rabbit` mais mauvaise réponse → `rabbit.playShakeNo()`, la carotte rebondit puis `carrot.restAtGround()` (immobile au sol). `Session.recordMiss()`. Si carottes restantes > 0 → recharge la fronde, phase = `AIMING`. Sinon phase = `ROUND_OVER`.
+   - Si `target` est le sol → identique à un ratage. La carotte reste au sol via `restAtGround()`.
+8. `ROUND_OVER` : timer 1.2 s. À la fin du timer :
+   - Les lapins encore dans l'arbre (les 3 mauvais ou les 4 si manche perdue) sont **fade out + détruits**.
+   - Les lapins tombés au sol restent (`fallenRabbits`).
+   - Si `Session.isLastRound()` → phase = `SESSION_OVER`. Sinon → `Session.nextRound()`, génération de 4 nouveaux lapins dans l'arbre, retour à `AIMING`.
+
+### Séquence de fin de session (`SESSION_OVER`)
+
+Déclenchée quand toutes les manches ont été jouées. Pas d'écran séparé — tout se passe dans la `GameScene`.
+
+1. **Pancarte** : `MathSign.tweenWidthTo(largeurAdaptative)` puis `setEndOfSessionMessage(session.score, session.totalRounds)` qui affiche "X / N bonnes réponses".
+2. **Sautillement** : pour chaque lapin de `fallenRabbits`, déclencher `playHopInPlace()` en synchrone (3 bonds, durée totale ~1.5 s).
+3. **Fuite** : à la fin du sautillement, déclencher `playRunAwayRight()` sur tous en synchrone (translation X jusqu'à `screenWidth + margin`, scale X alterné, durée ~1 s).
+4. **Pause** : 1 s d'attente après que tous les lapins ont disparu. Pendant cette pause, le message "X / N bonnes réponses" reste affiché.
+5. **Rafraîchissement** : la `GameScene` :
+   - détruit tous les `fallenRabbits` et toutes les carottes au sol ;
+   - réinitialise la pancarte (largeur normale) ;
+   - regénère une `Session` avec les paramètres courants et un nouveau seed ;
+   - repart sur la manche 1 avec 4 nouveaux lapins, phase = `AIMING`.
 
 ### Démarrage de l'app
 
@@ -521,9 +569,11 @@ jobs:
 Le jeu est considéré "livré" quand :
 
 1. Sur un téléphone en paysage, on peut jouer une session complète du début à la fin (N manches), tirer des carottes, atteindre des lapins, voir les animations de réussite/échec.
-2. L'engrenage ouvre les paramètres ; tous les paramètres listés en §4 fonctionnent ; ils sont persistés en `localStorage`.
-3. Le mode accessibilité tap permet de toucher un lapin par un simple tap.
-4. `pnpm test` est vert avec ≥ 85% de couverture globale et 100% sur le domaine.
-5. `pnpm lint` et `pnpm build` passent sans erreur.
-6. CI GitHub Actions verte.
-7. Aucune fonction > 20 lignes, aucun fichier > 200 lignes.
+2. À chaque manche réussie, le bon lapin mord un bout de carotte, tombe à la verticale de sa branche, et reste sur l'herbe avec son fragment de carotte en main.
+3. À la fin des N manches, le `MathSign` s'élargit et affiche "X / N bonnes réponses", tous les lapins tombés sautillent en synchrone puis partent ensemble vers la droite. Après 1 s, le jeu se rafraîchit automatiquement.
+4. L'engrenage ouvre les paramètres ; tous les paramètres listés en §4 fonctionnent ; ils sont persistés en `localStorage`.
+5. Le mode accessibilité tap permet de toucher un lapin par un simple tap.
+6. `pnpm test` est vert avec ≥ 85% de couverture globale et 100% sur le domaine.
+7. `pnpm lint` et `pnpm build` passent sans erreur.
+8. CI GitHub Actions verte.
+9. Aucune fonction > 20 lignes, aucun fichier > 200 lignes.
