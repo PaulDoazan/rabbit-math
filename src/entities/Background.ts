@@ -43,26 +43,6 @@ const drawHills = (g: Graphics): void => {
     .stroke({ width: STROKE.thick, color: COLORS.outline });
 };
 
-const drawBarn = (g: Graphics): void => {
-  const x = 60;
-  const baseY = GROUND_Y;
-  // body
-  g.rect(x, baseY - 38, 54, 38)
-    .fill(0xc94a3a)
-    .stroke({ width: STROKE.normal, color: COLORS.outline });
-  // roof
-  g.moveTo(x - 6, baseY - 38)
-    .lineTo(x + 27, baseY - 60)
-    .lineTo(x + 60, baseY - 38)
-    .lineTo(x - 6, baseY - 38)
-    .fill(0x4a2a1c)
-    .stroke({ width: STROKE.normal, color: COLORS.outline });
-  // door
-  g.rect(x + 20, baseY - 22, 14, 22)
-    .fill(0x4a2a1c)
-    .stroke({ width: STROKE.normal, color: COLORS.outline });
-};
-
 const drawGrass = (g: Graphics): void => {
   g.rect(0, GROUND_Y, DESIGN_WIDTH, DESIGN_HEIGHT - GROUND_Y)
     .fill(COLORS.grass);
@@ -93,7 +73,6 @@ export function createBackground(): Background {
   drawSun(g);
   drawClouds(g);
   drawHills(g);
-  drawBarn(g);
   drawGrass(g);
   drawTufts(g);
   view.addChild(g);
