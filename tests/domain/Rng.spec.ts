@@ -1,11 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { mulberry32, pickFrom, shuffle } from "../../src/domain/Rng";
+import { mulberry32, pickFrom, shuffle, type Rng } from "../../src/domain/Rng";
+
+const draws = (r: Rng, n: number) => Array.from({ length: n }, () => r());
 
 describe("mulberry32", () => {
-  it("produces deterministic sequences for the same seed", () => {
-    const a = mulberry32(42);
-    const b = mulberry32(42);
-    expect([a(), a(), a()]).toEqual([b(), b(), b()]);
+  it("produces identical 50-draw sequences for the same seed", () => {
+    expect(draws(mulberry32(42), 50)).toEqual(draws(mulberry32(42), 50));
+  });
+
+  it("produces different sequences for different seeds", () => {
+    expect(draws(mulberry32(1), 5)).not.toEqual(draws(mulberry32(2), 5));
   });
 
   it("produces values in [0, 1)", () => {
@@ -25,9 +29,14 @@ describe("pickFrom", () => {
     expect([10, 20, 30]).toContain(result);
   });
 
-  it("throws on an empty array", () => {
+  it("always returns the only element of a single-element array", () => {
+    const r = mulberry32(7);
+    expect(pickFrom(["x"], r)).toBe("x");
+  });
+
+  it("throws with an explanatory message on an empty array", () => {
     const r = mulberry32(1);
-    expect(() => pickFrom([], r)).toThrow();
+    expect(() => pickFrom([], r)).toThrow(/empty/);
   });
 });
 

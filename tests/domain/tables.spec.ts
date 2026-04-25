@@ -41,10 +41,25 @@ describe("tables_all", () => {
     const list = getTableList("tables_all");
     expect(list.pairs).toHaveLength(90);
   });
+
+  it("contains 90 unique pairs", () => {
+    const list = getTableList("tables_all");
+    const keys = list.pairs.map((p) => `${p.a}x${p.b}`);
+    expect(new Set(keys).size).toBe(90);
+  });
+});
+
+describe("each list", () => {
+  it("has matching id and a non-empty label", () => {
+    for (const [key, list] of Object.entries(TABLE_LISTS)) {
+      expect(list.id).toBe(key);
+      expect(list.label.length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe("getTableList", () => {
-  it("throws on unknown id", () => {
-    expect(() => getTableList("nope" as TableListId)).toThrow();
+  it("throws an explanatory message on unknown id", () => {
+    expect(() => getTableList("nope" as TableListId)).toThrow(/Unknown table list: nope/);
   });
 });
