@@ -136,10 +136,10 @@ const onCorrect = (d: RoundFlowDeps, l: Live, idx: number): void => {
   void advance(d, l);
 };
 
-const onWrong = (d: RoundFlowDeps, l: Live, idx: number, p: Vec): void => {
+const onWrong = (d: RoundFlowDeps, l: Live, idx: number): void => {
   void d.rabbits[idx]!.playShakeNo();
   d.session.startResolving(); d.session.recordMiss();
-  restAt(d, l, p);
+  removeCarrot(d, l);
   continueOrEnd(d, l);
 };
 
@@ -149,17 +149,17 @@ const onMiss = (d: RoundFlowDeps, l: Live, p: Vec): void => {
   continueOrEnd(d, l);
 };
 
-const resolveRabbit = (d: RoundFlowDeps, l: Live, idx: number, p: Vec): void => {
+const resolveRabbit = (d: RoundFlowDeps, l: Live, idx: number): void => {
   l.resolving = true;
   const ok = d.rabbits[idx]!.getNumber() === d.session.currentQuestion().answer;
-  if (ok) onCorrect(d, l, idx); else onWrong(d, l, idx, p);
+  if (ok) onCorrect(d, l, idx); else onWrong(d, l, idx);
 };
 
 const checkCollision = (d: RoundFlowDeps, l: Live): void => {
   const body = l.carrot.body;
   const p = { x: body.position.x, y: body.position.y };
   const idx = findHit(d, p);
-  if (idx >= 0) { resolveRabbit(d, l, idx, p); return; }
+  if (idx >= 0) { resolveRabbit(d, l, idx); return; }
   if (isLost(p, body.velocity)) { l.resolving = true; onMiss(d, l, p); }
 };
 
