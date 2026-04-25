@@ -12,7 +12,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint --no-error-on-unmatched-pattern \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "format": "prettier --write src tests"
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@tweenjs/tween.js": "^25.0.0",
