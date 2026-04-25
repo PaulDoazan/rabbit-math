@@ -1,11 +1,10 @@
 import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { COLORS, STROKE } from "../config/theme";
 import { DESIGN_HEIGHT, DESIGN_WIDTH } from "../config/dimensions";
-import { TABLE_LISTS, type TableListId } from "../domain/tables";
+import type { Pair } from "../domain/tables";
 import type { Difficulty } from "../domain/DifficultyConfig";
 import type { Settings } from "../services/Settings";
 
-export const TABLE_IDS = Object.keys(TABLE_LISTS) as TableListId[];
 export const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 export const ROUNDS_OPTIONS = [5, 10, 15, 20];
 export const CARROTS_OPTIONS = [2, 3, 4];
@@ -15,8 +14,18 @@ export const cycle = <T,>(arr: readonly T[], current: T): T => {
   return arr[(idx + 1) % arr.length] as T;
 };
 
+export const arrayEqualPairs = (
+  a: readonly Pair[],
+  b: readonly Pair[],
+): boolean => {
+  if (a.length !== b.length) return false;
+  const key = (p: Pair): string => `${p.a}x${p.b}`;
+  const setA = new Set(a.map(key));
+  return b.every((p) => setA.has(key(p)));
+};
+
 export const sessionImpactingChanged = (a: Settings, b: Settings): boolean =>
-  a.tableListId !== b.tableListId ||
+  !arrayEqualPairs(a.selectedPairs, b.selectedPairs) ||
   a.difficulty !== b.difficulty ||
   a.roundsPerSession !== b.roundsPerSession;
 

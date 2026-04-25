@@ -1,10 +1,10 @@
-import { getTableList, type TableListId, type Pair } from "./tables";
+import type { Pair } from "./tables";
 import { generateDistractors, type Difficulty } from "./DifficultyConfig";
 import { mulberry32, pickFrom, shuffle, type Rng } from "./Rng";
 import type { Question } from "./Question";
 
 export interface SessionRequest {
-  readonly tableListId: TableListId;
+  readonly pairs: readonly Pair[];
   readonly difficulty: Difficulty;
   readonly count: number;
   readonly seed: number;
@@ -27,7 +27,7 @@ const buildQuestion = (pair: Pair, difficulty: Difficulty, rng: Rng): Question =
 
 export function generateSession(req: SessionRequest): Question[] {
   const rng = mulberry32(req.seed);
-  const pool = getTableList(req.tableListId).pairs;
+  const pool = req.pairs;
   const out: Question[] = [];
   let previous: Pair | null = null;
   for (let i = 0; i < req.count; i++) {

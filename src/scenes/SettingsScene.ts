@@ -2,14 +2,13 @@ import { Container } from "pixi.js";
 import type { Settings } from "../services/Settings";
 import type { Scene } from "../core/Scene";
 import type { Difficulty } from "../domain/DifficultyConfig";
-import { TABLE_LISTS, type TableListId } from "../domain/tables";
+import type { Pair } from "../domain/tables";
 import {
   createPanelBackground,
   createPanelTitle,
   createCycleRow,
   createCloseButton,
   createConfirmPrompt,
-  TABLE_IDS,
   DIFFICULTIES,
   ROUNDS_OPTIONS,
   CARROTS_OPTIONS,
@@ -23,10 +22,11 @@ export interface SettingsSceneDeps {
   initial: Settings;
   onChange(next: Settings): void;
   onClose(next: Settings, restartRequested: boolean): void;
+  onOpenCalcsPicker(currentSelection: Pair[]): Promise<Pair[]>;
 }
 
 export interface SettingsScene extends Scene {
-  setTableList(id: TableListId): void;
+  setSelectedPairs(pairs: Pair[]): void;
   setRoundsPerSession(n: number): void;
   setCarrotsPerRound(n: number): void;
   setDifficulty(d: Difficulty): void;
@@ -53,7 +53,7 @@ const buildSetters = (
   state: State,
   deps: SettingsSceneDeps,
 ): Omit<SettingsScene, keyof Scene> => ({
-  setTableList: (id) => applyPatch(state, deps, { tableListId: id }),
+  setSelectedPairs: (pairs) => applyPatch(state, deps, { selectedPairs: pairs }),
   setRoundsPerSession: (n) => applyPatch(state, deps, { roundsPerSession: n }),
   setCarrotsPerRound: (n) => applyPatch(state, deps, { carrotsPerRound: n }),
   setDifficulty: (d) => applyPatch(state, deps, { difficulty: d }),
@@ -77,6 +77,7 @@ const buildSceneShell = (view: Container): Scene => ({
 interface RowCtx {
   view: Container;
   state: State;
+  deps: SettingsSceneDeps;
   update: (patch: Partial<Settings>) => void;
 }
 
@@ -96,13 +97,20 @@ const addCycleRow = <T>(
   ctx.view.addChild(row.view);
 };
 
-const addTableRow = (ctx: RowCtx): void =>
-  addCycleRow<TableListId>(ctx, 0, "Liste de calculs", {
-    values: TABLE_IDS,
-    get: () => ctx.state.current.tableListId,
-    render: (v) => TABLE_LISTS[v].label,
-    apply: (v) => ctx.update({ tableListId: v }),
+const calcsValueText = (n: number): string => `${n} / 90 calculs`;
+
+const addCalcsRow = (ctx: RowCtx): void => {
+  const row = createCycleRow("Liste de calculs", 0);
+  const refresh = (): void =>
+    row.setValue(calcsValueText(ctx.state.current.selectedPairs.length));
+  refresh();
+  row.onTap(async () => {
+    const next = await ctx.deps.onOpenCalcsPicker(ctx.state.current.selectedPairs);
+    ctx.update({ selectedPairs: next });
+    refresh();
   });
+  ctx.view.addChild(row.view);
+};
 
 const addDifficultyRow = (ctx: RowCtx): void =>
   addCycleRow<Difficulty>(ctx, 1, "Difficulté", {
@@ -152,7 +160,7 @@ const addToggleRows = (ctx: RowCtx): void => {
 };
 
 const buildAllRows = (ctx: RowCtx): void => {
-  addTableRow(ctx);
+  addCalcsRow(ctx);
   addDifficultyRow(ctx);
   addRoundsRow(ctx);
   addCarrotsRow(ctx);
@@ -187,6 +195,7 @@ const buildVisualPanel = (
   const ctx: RowCtx = {
     view,
     state,
+    deps,
     update: (patch) => applyPatch(state, deps, patch),
   };
   buildAllRows(ctx);

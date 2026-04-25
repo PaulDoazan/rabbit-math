@@ -27,6 +27,8 @@ const tablePairs = (multipliers: number[]): Pair[] =>
 
 const squarePairs = (): Pair[] => range(2, 10).map((n) => ({ a: n, b: n }));
 
+export const allPairs = (): Pair[] => tablePairs(range(2, 10));
+
 export const TABLE_LISTS: Readonly<Record<TableListId, TableList>> = {
   table_2: { id: "table_2", label: "Table de 2", pairs: tablePairs([2]) },
   table_5: { id: "table_5", label: "Table de 5", pairs: tablePairs([5]) },

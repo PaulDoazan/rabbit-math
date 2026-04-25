@@ -7,6 +7,7 @@ import { createSettingsScene } from "./scenes/SettingsScene";
 import { loadSettings, saveSettings, type Settings } from "./services/Settings";
 import { createAudio } from "./services/Audio";
 import { installOrientationLock } from "./ui/OrientationLock";
+import { openCalcsPicker } from "./ui/CalcsPicker";
 import { tickTweens } from "./entities/animations/Tween";
 
 type SM = ReturnType<typeof createSceneManager>;
@@ -26,8 +27,14 @@ const openSettings = (sm: SM, physics: Physics, ref: SettingsRef): void => {
       sm.closeOverlay();
       if (restart) startGame(sm, physics, ref);
     },
+    onOpenCalcsPicker: (current) => openCalcsPicker({ initial: current }),
   });
   sm.openOverlay(settings);
+};
+
+const toggleFullscreen = (): void => {
+  if (document.fullscreenElement) void document.exitFullscreen();
+  else void document.documentElement.requestFullscreen();
 };
 
 const startGame = (sm: SM, physics: Physics, ref: SettingsRef): void => {
@@ -36,6 +43,7 @@ const startGame = (sm: SM, physics: Physics, ref: SettingsRef): void => {
     physics,
     onOpenSettings: () => openSettings(sm, physics, ref),
     onSessionRestart: () => startGame(sm, physics, ref),
+    onToggleFullscreen: toggleFullscreen,
   });
   sm.goTo(game);
 };
