@@ -2,26 +2,27 @@ import Matter from "matter-js";
 import { Container, Graphics } from "pixi.js";
 import { COLORS } from "../config/theme";
 import { CARROT_DENSITY, CARROT_FRICTION, CARROT_RADIUS, CARROT_RESTITUTION, GRAVITY_Y } from "../config/physics";
+import { GROUND_Y } from "../config/dimensions";
 
 export interface Vec {
   x: number;
   y: number;
 }
 
-const SIM_STEPS = 60;
+const MAX_SIM_STEPS = 240;
 const SIM_DT_MS = 1000 / 60;
 
-export function computeTrajectoryPoints(
-  start: Vec,
-  velocity: Vec,
-): Vec[] {
-  const engine = Matter.Engine.create();
-  engine.gravity.y = GRAVITY_Y;
-  const body = Matter.Bodies.circle(start.x, start.y, CARROT_RADIUS, {
+const makeBody = (start: Vec): Matter.Body =>
+  Matter.Bodies.circle(start.x, start.y, CARROT_RADIUS, {
     density: CARROT_DENSITY,
     friction: CARROT_FRICTION,
     restitution: CARROT_RESTITUTION,
   });
+
+export function computeTrajectoryPoints(start: Vec, velocity: Vec): Vec[] {
+  const engine = Matter.Engine.create();
+  engine.gravity.y = GRAVITY_Y;
+  const body = makeBody(start);
   Matter.World.add(engine.world, body);
   Matter.Body.setVelocity(body, velocity);
   return simulate(engine, body);
@@ -29,9 +30,11 @@ export function computeTrajectoryPoints(
 
 const simulate = (engine: Matter.Engine, body: Matter.Body): Vec[] => {
   const out: Vec[] = [{ x: body.position.x, y: body.position.y }];
-  for (let i = 0; i < SIM_STEPS; i++) {
+  for (let i = 0; i < MAX_SIM_STEPS; i++) {
     Matter.Engine.update(engine, SIM_DT_MS);
-    out.push({ x: body.position.x, y: body.position.y });
+    const p = { x: body.position.x, y: body.position.y };
+    out.push(p);
+    if (p.y >= GROUND_Y) break;
   }
   Matter.Engine.clear(engine);
   return out;
