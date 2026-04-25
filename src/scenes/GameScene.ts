@@ -12,18 +12,22 @@ import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Scene } from "../core/Scene";
 import { generateSession } from "../domain/QuestionGenerator";
 import { createSession, type Session } from "../domain/Session";
+import { installRoundFlow, type RoundFlow } from "./gameRound";
 
 export interface GameSceneDeps {
   settings: Settings;
   physics: PhysicsWorld;
   onOpenSettings(): void;
   onSessionRestart(): void;
+  delay?: (ms: number) => Promise<void>;
 }
 
 export interface GameScene extends Scene {
   rabbits(): readonly Rabbit[];
   mathSign(): MathSign;
   session(): Session;
+  forceCorrectHit(): void;
+  forceWrongHit(rabbitIndex?: number): void;
 }
 
 interface Parts {
@@ -79,22 +83,45 @@ const attachChildren = (parts: Parts): void => {
   for (const r of parts.rabbits) parts.view.addChild(r.view);
 };
 
-const buildSceneApi = (parts: Parts): GameScene => ({
+const defaultDelay = (ms: number): Promise<void> =>
+  new Promise((r) => setTimeout(r, ms));
+
+const wireFlow = (deps: GameSceneDeps, parts: Parts): RoundFlow =>
+  installRoundFlow({
+    view: parts.view,
+    physics: deps.physics,
+    slingshot: parts.slingshot,
+    rabbits: parts.rabbits,
+    sign: parts.sign,
+    counter: parts.counter,
+    session: parts.session,
+    settings: deps.settings,
+    delay: deps.delay ?? defaultDelay,
+    onSessionEnd: () => deps.onSessionRestart(),
+  });
+
+const buildSceneApi = (parts: Parts, flow: RoundFlow): GameScene => ({
   id: "game",
   view: parts.view,
   rabbits: () => parts.rabbits,
   mathSign: () => parts.sign,
   session: () => parts.session,
+  forceCorrectHit: () => flow.forceCorrectHit(),
+  forceWrongHit: (i?: number) => flow.forceWrongHit(i),
   onEnter: () => {},
   onExit: () => {},
-  onTick: () => {},
+  onTick: (dt) => flow.tick(dt),
   pause: () => {},
   resume: () => {},
-  destroy: () => parts.view.destroy({ children: true }),
+  destroy: () => {
+    flow.destroy();
+    parts.view.destroy({ children: true });
+  },
 });
 
 export function createGameScene(deps: GameSceneDeps): GameScene {
   const parts = assembleScene(deps);
   attachChildren(parts);
-  return buildSceneApi(parts);
+  const flow = wireFlow(deps, parts);
+  return buildSceneApi(parts, flow);
 }
