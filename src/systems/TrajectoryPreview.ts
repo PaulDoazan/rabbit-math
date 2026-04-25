@@ -34,7 +34,7 @@ const simulate = (engine: Matter.Engine, body: Matter.Body): Vec[] => {
     Matter.Engine.update(engine, SIM_DT_MS);
     const p = { x: body.position.x, y: body.position.y };
     out.push(p);
-    if (p.y >= GROUND_Y) break;
+    if (p.y >= GROUND_Y && body.velocity.y > 0) break;
   }
   Matter.Engine.clear(engine);
   return out;
