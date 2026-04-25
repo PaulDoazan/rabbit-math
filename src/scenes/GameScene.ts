@@ -6,6 +6,7 @@ import { createSlingshot, type Slingshot } from "../entities/Slingshot";
 import { createMathSign, type MathSign } from "../entities/MathSign";
 import { createCarrotCounter, type CarrotCounter } from "../entities/CarrotCounter";
 import { createGearButton, type GearButton } from "../entities/GearButton";
+import { createFullscreenButton, type FullscreenButton } from "../entities/FullscreenButton";
 import { TREE_PERCHES } from "../config/dimensions";
 import type { Settings } from "../services/Settings";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
@@ -19,6 +20,7 @@ export interface GameSceneDeps {
   physics: PhysicsWorld;
   onOpenSettings(): void;
   onSessionRestart(): void;
+  onToggleFullscreen(): void;
   delay?: (ms: number) => Promise<void>;
 }
 
@@ -38,6 +40,7 @@ interface Parts {
   sign: MathSign;
   counter: CarrotCounter;
   gear: GearButton;
+  fullscreen: FullscreenButton;
   rabbits: Rabbit[];
   session: Session;
 }
@@ -67,10 +70,11 @@ const assembleScene = (deps: GameSceneDeps): Parts => {
   const sign = createMathSign();
   const counter = createCarrotCounter(deps.settings.carrotsPerRound);
   const gear = createGearButton({ onTap: deps.onOpenSettings });
+  const fullscreen = createFullscreenButton({ onTap: deps.onToggleFullscreen });
   const session = newSession(deps.settings);
   const rabbits = buildRabbits(session.currentQuestion().choices);
   sign.setQuestion(session.currentQuestion());
-  return { view, background, tree, slingshot, sign, counter, gear, rabbits, session };
+  return { view, background, tree, slingshot, sign, counter, gear, fullscreen, rabbits, session };
 };
 
 const attachChildren = (parts: Parts): void => {
@@ -80,6 +84,7 @@ const attachChildren = (parts: Parts): void => {
   parts.view.addChild(parts.sign.view);
   parts.view.addChild(parts.counter.view);
   parts.view.addChild(parts.gear.view);
+  parts.view.addChild(parts.fullscreen.view);
   for (const r of parts.rabbits) parts.view.addChild(r.view);
 };
 

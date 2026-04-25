@@ -30,12 +30,18 @@ const openSettings = (sm: SM, physics: Physics, ref: SettingsRef): void => {
   sm.openOverlay(settings);
 };
 
+const toggleFullscreen = (): void => {
+  if (document.fullscreenElement) void document.exitFullscreen();
+  else void document.documentElement.requestFullscreen();
+};
+
 const startGame = (sm: SM, physics: Physics, ref: SettingsRef): void => {
   const game = createGameScene({
     settings: ref.current,
     physics,
     onOpenSettings: () => openSettings(sm, physics, ref),
     onSessionRestart: () => startGame(sm, physics, ref),
+    onToggleFullscreen: toggleFullscreen,
   });
   sm.goTo(game);
 };

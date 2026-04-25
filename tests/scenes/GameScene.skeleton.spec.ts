@@ -10,7 +10,7 @@ describe("GameScene skeleton structure", () => {
       settings: DEFAULT_SETTINGS,
       physics,
       onOpenSettings: () => {},
-      onSessionRestart: () => {},
+      onSessionRestart: () => {}, onToggleFullscreen: () => {},
     });
     expect(scene.view.children.length).toBeGreaterThan(0);
     expect(scene.rabbits().length).toBe(4);
@@ -25,7 +25,7 @@ describe("GameScene skeleton question", () => {
       settings: DEFAULT_SETTINGS,
       physics,
       onOpenSettings: () => {},
-      onSessionRestart: () => {},
+      onSessionRestart: () => {}, onToggleFullscreen: () => {},
     });
     expect(scene.mathSign().text()).toMatch(/× .* = \?/);
     physics.destroy();

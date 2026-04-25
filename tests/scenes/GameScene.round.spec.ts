@@ -10,7 +10,7 @@ describe("GameScene round flow — score", () => {
       settings: { ...DEFAULT_SETTINGS, roundsPerSession: 3 },
       physics,
       onOpenSettings: () => {},
-      onSessionRestart: () => {},
+      onSessionRestart: () => {}, onToggleFullscreen: () => {},
     });
     const before = scene.session().snapshot().score;
     scene.forceCorrectHit();
@@ -26,7 +26,7 @@ describe("GameScene round flow — round end after misses", () => {
       settings: { ...DEFAULT_SETTINGS, carrotsPerRound: 3, roundsPerSession: 3 },
       physics,
       onOpenSettings: () => {},
-      onSessionRestart: () => {},
+      onSessionRestart: () => {}, onToggleFullscreen: () => {},
     });
     scene.forceWrongHit();
     scene.forceWrongHit();
@@ -44,7 +44,7 @@ describe("GameScene round flow — single carrot round", () => {
       settings: { ...DEFAULT_SETTINGS, carrotsPerRound: 1, roundsPerSession: 3 },
       physics,
       onOpenSettings: () => {},
-      onSessionRestart: () => {},
+      onSessionRestart: () => {}, onToggleFullscreen: () => {},
     });
     scene.forceWrongHit();
     expect(scene.session().snapshot().phase).toBe("round_over");
