@@ -56,11 +56,17 @@ const buildRow = (
   return { row, cb };
 };
 
-const buildSectionHeader = (a: number): HTMLDivElement => {
-  const header = document.createElement("div");
+const buildSectionHeader = (
+  a: number,
+): { header: HTMLLabelElement; cb: HTMLInputElement } => {
+  const header = document.createElement("label");
   header.className = "cp-section-header";
-  header.textContent = `Table de ${a}`;
-  return header;
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  const text = document.createElement("span");
+  text.textContent = `Table de ${a}`;
+  header.append(cb, text);
+  return { header, cb };
 };
 
 const buildSectionRows = (
@@ -86,24 +92,37 @@ const buildSection = (
 ): HTMLDivElement => {
   const section = document.createElement("div");
   section.className = "cp-section";
-  const header = buildSectionHeader(a);
+  const { header, cb: headerCb } = buildSectionHeader(a);
   section.appendChild(header);
   const rows = buildSectionRows(a, section, has, checkboxes);
-  attachSectionToggle(header, rows);
+  wireSectionToggle(headerCb, rows);
   return section;
 };
 
-const attachSectionToggle = (
-  header: HTMLElement,
-  rows: HTMLInputElement[],
+const syncHeaderFromRows = (
+  headerCb: HTMLInputElement,
+  rows: readonly HTMLInputElement[],
 ): void => {
-  header.addEventListener("click", () => {
-    const allChecked = rows.every((r) => r.checked);
-    rows.forEach((r) => {
-      r.checked = !allChecked;
+  const checkedCount = rows.filter((r) => r.checked).length;
+  headerCb.checked = checkedCount === rows.length;
+  headerCb.indeterminate = checkedCount > 0 && checkedCount < rows.length;
+};
+
+const wireSectionToggle = (
+  headerCb: HTMLInputElement,
+  rows: readonly HTMLInputElement[],
+): void => {
+  syncHeaderFromRows(headerCb, rows);
+  headerCb.addEventListener("change", () => {
+    const target = headerCb.checked;
+    for (const r of rows) {
+      r.checked = target;
       r.dispatchEvent(new Event("change", { bubbles: true }));
-    });
+    }
   });
+  for (const r of rows) {
+    r.addEventListener("change", () => syncHeaderFromRows(headerCb, rows));
+  }
 };
 
 const buildBody = (
