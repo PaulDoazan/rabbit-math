@@ -11,7 +11,8 @@ import { createTrajectoryPreview, type TrajectoryPreview } from "../systems/Traj
 import { classifyHit } from "../systems/CollisionHandler";
 import type { Session } from "../domain/Session";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
-import type { Settings } from "../services/Settings";
+import type { Perch } from "../config/dimensions";
+import { CARROTS_PER_ROUND } from "../domain/sessionConfig";
 import { playEndOfSession } from "./endOfSession";
 import { fadeOutAndRemove, purgeOwnedBodies } from "./gameRoundCleanup";
 import { assignNumbersForRound, playMancheTransition } from "./manche";
@@ -26,7 +27,7 @@ export interface RoundFlowDeps {
   sign: MathSign;
   counter: CarrotCounter;
   session: Session;
-  settings: Settings;
+  perches: ReadonlyArray<Perch>;
   delay: (ms: number) => Promise<void>;
   onSessionEnd(): void;
 }
@@ -87,7 +88,7 @@ const findHit = (d: RoundFlowDeps, p: Vec): number => {
 const refresh = (d: RoundFlowDeps): void => {
   const q = d.session.currentQuestion();
   d.sign.setQuestion(q); assignNumbersForRound(d.rabbits, q);
-  d.counter.setRemaining(d.settings.carrotsPerRound);
+  d.counter.setRemaining(CARROTS_PER_ROUND - 1);
 };
 
 const removeCarrot = (d: RoundFlowDeps, l: Live): void => {
@@ -119,13 +120,13 @@ const advance = async (d: RoundFlowDeps, l: Live): Promise<void> => {
   d.session.nextRound();
   if (l.destroyed) return;
   if (d.session.isOver()) return void endSession(d, l);
-  if (d.rabbits.every((r) => r.isFallen())) await playMancheTransition({ view: d.view, rabbits: d.rabbits });
+  if (d.rabbits.every((r) => r.isFallen())) await playMancheTransition({ view: d.view, rabbits: d.rabbits, perches: d.perches });
   if (l.destroyed) return;
   refresh(d); reload(d, l); l.resolving = false;
 };
 
 const continueOrEnd = (d: RoundFlowDeps, l: Live): void => {
-  d.counter.setRemaining(d.session.snapshot().carrotsLeft);
+  d.counter.setRemaining(d.session.snapshot().carrotsLeft - 1);
   if (d.session.snapshot().phase === "aiming") {
     l.carrot = loadCarrot(d, l); l.resolving = false; return;
   }

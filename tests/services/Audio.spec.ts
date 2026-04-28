@@ -13,43 +13,19 @@ const fakeAudio = () => {
   return { play, pause, ctor };
 };
 
-const makeAudio = (sfx: boolean, music: boolean) => {
-  const f = fakeAudio();
-  const a = createAudio({
-    AudioCtor: f.ctor as unknown as typeof Audio,
-    sfxEnabled: () => sfx,
-    musicEnabled: () => music,
-  });
-  return { f, a };
-};
-
-describe("Audio sfx enabled", () => {
-  it("plays a sfx when enabled", () => {
-    const { f, a } = makeAudio(true, false);
+describe("Audio sfx", () => {
+  it("plays a sfx", () => {
+    const f = fakeAudio();
+    const a = createAudio({ AudioCtor: f.ctor as unknown as typeof Audio });
     a.playSfx("shot" as SoundId);
     expect(f.play).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("Audio sfx disabled", () => {
-  it("does not play sfx when disabled", () => {
-    const { f, a } = makeAudio(false, false);
-    a.playSfx("shot" as SoundId);
-    expect(f.play).not.toHaveBeenCalled();
-  });
-});
-
 describe("Audio music", () => {
-  it("startMusic / stopMusic respects musicEnabled", () => {
+  it("startMusic plays once and stopMusic pauses", () => {
     const f = fakeAudio();
-    const flag = { on: true };
-    const a = createAudio({
-      AudioCtor: f.ctor as unknown as typeof Audio,
-      sfxEnabled: () => false,
-      musicEnabled: () => flag.on,
-    });
-    a.startMusic();
-    flag.on = false;
+    const a = createAudio({ AudioCtor: f.ctor as unknown as typeof Audio });
     a.startMusic();
     a.stopMusic();
     expect(f.play).toHaveBeenCalledTimes(1);

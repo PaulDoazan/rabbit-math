@@ -42,12 +42,17 @@ const widenIfNeeded = (answer: number, range: Range, target: number): number[] =
   return pool;
 };
 
-export function generateDistractors(answer: number, difficulty: Difficulty, rng: Rng): number[] {
+export function generateDistractors(
+  answer: number,
+  difficulty: Difficulty,
+  count: number,
+  rng: Rng,
+): number[] {
   const range = DIFFICULTY_RANGES[difficulty];
-  const pool = widenIfNeeded(answer, range, 3);
-  if (pool.length < 3) {
+  const pool = widenIfNeeded(answer, range, count);
+  if (pool.length < count) {
     console.warn(`Not enough distractors for answer=${answer} difficulty=${difficulty}`);
   }
-  const picks = shuffle(pool, rng).slice(0, 3);
+  const picks = shuffle(pool, rng).slice(0, count);
   return difficulty === "hard" ? ensureNeighbour(answer, picks, pool) : picks;
 }

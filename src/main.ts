@@ -48,11 +48,9 @@ const startGame = (sm: SM, physics: Physics, ref: SettingsRef): void => {
   sm.goTo(game);
 };
 
-const setupAudio = (settingsRef: SettingsRef) =>
+const setupAudio = () =>
   createAudio({
     AudioCtor: Audio,
-    sfxEnabled: () => settingsRef.current.soundEnabled,
-    musicEnabled: () => settingsRef.current.musicEnabled,
   });
 
 async function main(): Promise<void> {
@@ -64,7 +62,7 @@ async function main(): Promise<void> {
   const sm = createSceneManager(app.stage);
   const settingsRef = { current: loadSettings() };
   saveSettings(settingsRef.current);
-  const audio = setupAudio(settingsRef);
+  const audio = setupAudio();
   audio.startMusic();
   startGame(sm, physics, settingsRef);
   Ticker.shared.add((t) => {

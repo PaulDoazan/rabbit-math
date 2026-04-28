@@ -18,13 +18,13 @@ const makeScene = (
     ...overrides,
   });
 
-describe("SettingsScene setDifficulty emits onChange", () => {
+describe("SettingsScene setRabbitsCount emits onChange", () => {
   it("emits onChange with the patched settings", () => {
     const onChange = vi.fn();
     const scene = makeScene({ onChange });
-    scene.setDifficulty("hard");
+    scene.setRabbitsCount(6);
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ difficulty: "hard" }),
+      expect.objectContaining({ rabbitsCount: 6 }),
     );
   });
 });
@@ -41,14 +41,25 @@ describe("SettingsScene setSelectedPairs emits onChange", () => {
   });
 });
 
+describe("SettingsScene setTapMode emits onChange", () => {
+  it("emits onChange with the new tapMode", () => {
+    const onChange = vi.fn();
+    const scene = makeScene({ onChange });
+    scene.setTapMode(true);
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ tapMode: true }),
+    );
+  });
+});
+
 describe("SettingsScene close", () => {
   it("confirmCloseWith fires onClose with latest settings and restartRequested", () => {
     const onClose = vi.fn();
     const scene = makeScene({ onClose });
-    scene.setRoundsPerSession(20);
+    scene.setRabbitsCount(7);
     scene.confirmCloseWith(true);
     expect(onClose).toHaveBeenCalledWith(
-      expect.objectContaining({ roundsPerSession: 20 }),
+      expect.objectContaining({ rabbitsCount: 7 }),
       true,
     );
   });
@@ -74,22 +85,18 @@ describe("cycle", () => {
 });
 
 describe("sessionImpactingChanged true cases", () => {
-  it("returns true when selectedPairs, difficulty or roundsPerSession change", () => {
+  it("returns true when selectedPairs or rabbitsCount changes", () => {
     const a = DEFAULT_SETTINGS;
-    expect(sessionImpactingChanged(a, { ...a, difficulty: "hard" })).toBe(true);
-    expect(sessionImpactingChanged(a, { ...a, roundsPerSession: 20 })).toBe(true);
+    expect(sessionImpactingChanged(a, { ...a, rabbitsCount: 6 })).toBe(true);
     const fewer = a.selectedPairs.slice(0, 5);
     expect(sessionImpactingChanged(a, { ...a, selectedPairs: fewer })).toBe(true);
   });
 });
 
 describe("sessionImpactingChanged false cases", () => {
-  it("returns false for non-session-impacting fields", () => {
+  it("returns false when only tapMode changes", () => {
     const a = DEFAULT_SETTINGS;
     expect(sessionImpactingChanged(a, { ...a, tapMode: !a.tapMode })).toBe(false);
-    expect(sessionImpactingChanged(a, { ...a, soundEnabled: !a.soundEnabled })).toBe(false);
-    expect(sessionImpactingChanged(a, { ...a, musicEnabled: !a.musicEnabled })).toBe(false);
-    expect(sessionImpactingChanged(a, { ...a, carrotsPerRound: 4 })).toBe(false);
   });
 
   it("returns false when selectedPairs has same content in different order", () => {

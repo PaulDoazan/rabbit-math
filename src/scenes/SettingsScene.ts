@@ -1,7 +1,6 @@
 import { Container } from "pixi.js";
-import type { Settings } from "../services/Settings";
+import type { Settings, RabbitsCount } from "../services/Settings";
 import type { Scene } from "../core/Scene";
-import type { Difficulty } from "../domain/DifficultyConfig";
 import type { Pair } from "../domain/tables";
 import {
   createPanelBackground,
@@ -9,13 +8,10 @@ import {
   createCycleRow,
   createCloseButton,
   createConfirmPrompt,
-  DIFFICULTIES,
-  ROUNDS_OPTIONS,
-  CARROTS_OPTIONS,
+  RABBITS_OPTIONS,
   cycle,
   sessionImpactingChanged,
   onOff,
-  difficultyLabel,
 } from "./SettingsPanel";
 
 export interface SettingsSceneDeps {
@@ -27,12 +23,8 @@ export interface SettingsSceneDeps {
 
 export interface SettingsScene extends Scene {
   setSelectedPairs(pairs: Pair[]): void;
-  setRoundsPerSession(n: number): void;
-  setCarrotsPerRound(n: number): void;
-  setDifficulty(d: Difficulty): void;
+  setRabbitsCount(n: RabbitsCount): void;
   setTapMode(on: boolean): void;
-  setSoundEnabled(on: boolean): void;
-  setMusicEnabled(on: boolean): void;
   confirmCloseWith(restart: boolean): void;
 }
 
@@ -54,12 +46,8 @@ const buildSetters = (
   deps: SettingsSceneDeps,
 ): Omit<SettingsScene, keyof Scene> => ({
   setSelectedPairs: (pairs) => applyPatch(state, deps, { selectedPairs: pairs }),
-  setRoundsPerSession: (n) => applyPatch(state, deps, { roundsPerSession: n }),
-  setCarrotsPerRound: (n) => applyPatch(state, deps, { carrotsPerRound: n }),
-  setDifficulty: (d) => applyPatch(state, deps, { difficulty: d }),
+  setRabbitsCount: (n) => applyPatch(state, deps, { rabbitsCount: n }),
   setTapMode: (on) => applyPatch(state, deps, { tapMode: on }),
-  setSoundEnabled: (on) => applyPatch(state, deps, { soundEnabled: on }),
-  setMusicEnabled: (on) => applyPatch(state, deps, { musicEnabled: on }),
   confirmCloseWith: (restart) => deps.onClose(state.current, restart),
 });
 
@@ -81,26 +69,10 @@ interface RowCtx {
   update: (patch: Partial<Settings>) => void;
 }
 
-const addCycleRow = <T>(
-  ctx: RowCtx,
-  index: number,
-  label: string,
-  options: { values: readonly T[]; get: () => T; render: (v: T) => string; apply: (v: T) => void },
-): void => {
-  const row = createCycleRow(label, index);
-  row.setValue(options.render(options.get()));
-  row.onTap(() => {
-    const next = cycle(options.values, options.get());
-    options.apply(next);
-    row.setValue(options.render(next));
-  });
-  ctx.view.addChild(row.view);
-};
-
 const calcsValueText = (n: number): string => `${n} / 90 calculs`;
 
-const addCalcsRow = (ctx: RowCtx): void => {
-  const row = createCycleRow("Liste de calculs", 0);
+const addQuestionsRow = (ctx: RowCtx): void => {
+  const row = createCycleRow("Questions", 0);
   const refresh = (): void =>
     row.setValue(calcsValueText(ctx.state.current.selectedPairs.length));
   refresh();
@@ -112,59 +84,34 @@ const addCalcsRow = (ctx: RowCtx): void => {
   ctx.view.addChild(row.view);
 };
 
-const addDifficultyRow = (ctx: RowCtx): void =>
-  addCycleRow<Difficulty>(ctx, 1, "Difficulté", {
-    values: DIFFICULTIES,
-    get: () => ctx.state.current.difficulty,
-    render: difficultyLabel,
-    apply: (v) => ctx.update({ difficulty: v }),
+const addRabbitsRow = (ctx: RowCtx): void => {
+  const row = createCycleRow("Nombre de lapins", 1);
+  const refresh = (): void => row.setValue(String(ctx.state.current.rabbitsCount));
+  refresh();
+  row.onTap(() => {
+    const next = cycle(RABBITS_OPTIONS, ctx.state.current.rabbitsCount);
+    ctx.update({ rabbitsCount: next });
+    refresh();
   });
+  ctx.view.addChild(row.view);
+};
 
-const addRoundsRow = (ctx: RowCtx): void =>
-  addCycleRow<number>(ctx, 2, "Manches par session", {
-    values: ROUNDS_OPTIONS,
-    get: () => ctx.state.current.roundsPerSession,
-    render: (v) => String(v),
-    apply: (v) => ctx.update({ roundsPerSession: v }),
+const addTapModeRow = (ctx: RowCtx): void => {
+  const row = createCycleRow("Mode tap (accessibilité)", 2);
+  const refresh = (): void => row.setValue(onOff(ctx.state.current.tapMode));
+  refresh();
+  row.onTap(() => {
+    const next = !ctx.state.current.tapMode;
+    ctx.update({ tapMode: next });
+    refresh();
   });
-
-const addCarrotsRow = (ctx: RowCtx): void =>
-  addCycleRow<number>(ctx, 3, "Carottes par manche", {
-    values: CARROTS_OPTIONS,
-    get: () => ctx.state.current.carrotsPerRound,
-    render: (v) => String(v),
-    apply: (v) => ctx.update({ carrotsPerRound: v }),
-  });
-
-const addToggleRow = (
-  ctx: RowCtx,
-  index: number,
-  label: string,
-  get: () => boolean,
-  apply: (v: boolean) => void,
-): void =>
-  addCycleRow<boolean>(ctx, index, label, {
-    values: [false, true] as const,
-    get,
-    render: onOff,
-    apply,
-  });
-
-const addToggleRows = (ctx: RowCtx): void => {
-  addToggleRow(ctx, 4, "Mode tap (accessibilité)",
-    () => ctx.state.current.tapMode, (v) => ctx.update({ tapMode: v }));
-  addToggleRow(ctx, 5, "Bruitages",
-    () => ctx.state.current.soundEnabled, (v) => ctx.update({ soundEnabled: v }));
-  addToggleRow(ctx, 6, "Musique",
-    () => ctx.state.current.musicEnabled, (v) => ctx.update({ musicEnabled: v }));
+  ctx.view.addChild(row.view);
 };
 
 const buildAllRows = (ctx: RowCtx): void => {
-  addCalcsRow(ctx);
-  addDifficultyRow(ctx);
-  addRoundsRow(ctx);
-  addCarrotsRow(ctx);
-  addToggleRows(ctx);
+  addQuestionsRow(ctx);
+  addRabbitsRow(ctx);
+  addTapModeRow(ctx);
 };
 
 const installCloseFlow = (

@@ -1,10 +1,10 @@
 import { Container, Graphics } from "pixi.js";
-import { TREE_PERCHES, GROUND_Y, TREE_TRUNK_X } from "../config/dimensions";
+import { TREE_PERCHES_BY_COUNT, GROUND_Y, TREE_TRUNK_X, type Perch } from "../config/dimensions";
 import { COLORS } from "../config/theme";
+const TREE_PERCHES: ReadonlyArray<Perch> = TREE_PERCHES_BY_COUNT[4];
 
 export interface Tree {
   readonly view: Container;
-  getPerchPositions(): typeof TREE_PERCHES;
 }
 
 const TRUNK_TOP_Y = 195;
@@ -42,10 +42,10 @@ const drawBark = (g: Graphics): void => {
 };
 
 const branchEnds: Array<{ from: Pt; to: Pt; baseW: number; tipW: number }> = [
-  { from: { x: TREE_TRUNK_X - 24, y: 280 }, to: { x: TREE_PERCHES[3].x, y: TREE_PERCHES[3].y + 20 }, baseW: 13, tipW: 6 },
-  { from: { x: TREE_TRUNK_X - 22, y: 220 }, to: { x: TREE_PERCHES[2].x, y: TREE_PERCHES[2].y + 18 }, baseW: 13, tipW: 6 },
-  { from: { x: TREE_TRUNK_X + 22, y: 200 }, to: { x: TREE_PERCHES[1].x, y: TREE_PERCHES[1].y + 18 }, baseW: 12, tipW: 5 },
-  { from: { x: TREE_TRUNK_X, y: TRUNK_TOP_Y }, to: { x: TREE_PERCHES[0].x, y: TREE_PERCHES[0].y + 18 }, baseW: 11, tipW: 5 },
+  { from: { x: TREE_TRUNK_X - 24, y: 280 }, to: { x: TREE_PERCHES[3]!.x, y: TREE_PERCHES[3]!.y + 20 }, baseW: 13, tipW: 6 },
+  { from: { x: TREE_TRUNK_X - 22, y: 220 }, to: { x: TREE_PERCHES[2]!.x, y: TREE_PERCHES[2]!.y + 18 }, baseW: 13, tipW: 6 },
+  { from: { x: TREE_TRUNK_X + 22, y: 200 }, to: { x: TREE_PERCHES[1]!.x, y: TREE_PERCHES[1]!.y + 18 }, baseW: 12, tipW: 5 },
+  { from: { x: TREE_TRUNK_X, y: TRUNK_TOP_Y }, to: { x: TREE_PERCHES[0]!.x, y: TREE_PERCHES[0]!.y + 18 }, baseW: 11, tipW: 5 },
 ];
 
 const branchQuad = (b: { from: Pt; to: Pt; baseW: number; tipW: number }, pad: number): number[] => {
@@ -67,16 +67,16 @@ const drawBranches = (g: Graphics): void => {
 };
 
 const foliage: Array<[number, number, number]> = [
-  [TREE_PERCHES[0].x - 15, 60, 58],
-  [TREE_PERCHES[0].x + 70, 35, 50],
-  [TREE_PERCHES[0].x - 85, 55, 48],
-  [TREE_PERCHES[0].x + 25, 110, 50],
-  [TREE_PERCHES[0].x - 55, 130, 46],
-  [TREE_PERCHES[1].x - 35, 105, 50],
-  [TREE_PERCHES[1].x + 30, 175, 46],
-  [TREE_PERCHES[2].x - 20, 178, 44],
-  [TREE_PERCHES[3].x - 30, 240, 42],
-  [TREE_PERCHES[3].x + 32, 250, 38],
+  [TREE_PERCHES[0]!.x - 15, 60, 58],
+  [TREE_PERCHES[0]!.x + 70, 35, 50],
+  [TREE_PERCHES[0]!.x - 85, 55, 48],
+  [TREE_PERCHES[0]!.x + 25, 110, 50],
+  [TREE_PERCHES[0]!.x - 55, 130, 46],
+  [TREE_PERCHES[1]!.x - 35, 105, 50],
+  [TREE_PERCHES[1]!.x + 30, 175, 46],
+  [TREE_PERCHES[2]!.x - 20, 178, 44],
+  [TREE_PERCHES[3]!.x - 30, 240, 42],
+  [TREE_PERCHES[3]!.x + 32, 250, 38],
 ];
 
 const drawFoliageOutline = (g: Graphics): void => {
@@ -104,5 +104,5 @@ export function createTree(): Tree {
   drawFoliageFill(g);
   drawFoliageHighlights(g);
   view.addChild(g);
-  return { view, getPerchPositions: () => TREE_PERCHES };
+  return { view };
 }
