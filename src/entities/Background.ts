@@ -1,4 +1,4 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import { DESIGN_WIDTH, DESIGN_HEIGHT, GROUND_Y } from "../config/dimensions";
 import { COLORS, STROKE } from "../config/theme";
 
@@ -6,12 +6,17 @@ export interface Background {
   readonly view: Container;
 }
 
-const drawSun = (g: Graphics): void => {
-  const cx = DESIGN_WIDTH - 70;
-  const cy = 60;
-  g.circle(cx, cy, 30)
-    .fill(COLORS.sun)
-    .stroke({ width: STROKE.thick, color: COLORS.outline });
+const SUN_DIAMETER = 110;
+const SUN_URL = `${import.meta.env.BASE_URL}assets/sun.png`;
+
+const createSun = (): Sprite => {
+  const sprite = new Sprite(Texture.from(SUN_URL));
+  sprite.anchor.set(0.5);
+  sprite.width = SUN_DIAMETER;
+  sprite.height = SUN_DIAMETER;
+  sprite.x = DESIGN_WIDTH - 80;
+  sprite.y = 70;
+  return sprite;
 };
 
 const CLOUD_OUTLINE_PAD = 2.5;
@@ -80,11 +85,11 @@ const drawTufts = (g: Graphics): void => {
 export function createBackground(): Background {
   const view = new Container();
   const g = new Graphics();
-  drawSun(g);
   drawClouds(g);
   drawHills(g);
   drawGrass(g);
   drawTufts(g);
   view.addChild(g);
+  view.addChild(createSun());
   return { view };
 }

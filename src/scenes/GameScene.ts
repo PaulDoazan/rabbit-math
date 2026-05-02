@@ -75,7 +75,7 @@ const buildRabbits = (
 const assembleScene = (deps: GameSceneDeps): Parts => {
   const view = new Container();
   const background = createBackground();
-  const tree = createTree();
+  const tree = createTree(deps.settings.rabbitsCount);
   const slingshot = createSlingshot();
   const sign = createMathSign();
   const counter = createCarrotCounter(CARROTS_PER_ROUND - 1);

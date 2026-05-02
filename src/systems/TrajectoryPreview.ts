@@ -42,7 +42,7 @@ const simulate = (engine: Matter.Engine, body: Matter.Body): Vec[] => {
 
 export interface TrajectoryPreview {
   readonly view: Container;
-  show(start: Vec, velocity: Vec): void;
+  show(points: readonly Vec[]): void;
   clear(): void;
 }
 
@@ -54,13 +54,9 @@ const drawDots = (g: Graphics, points: readonly Vec[]): void => {
   }
 };
 
-const renderShow = (g: Graphics) => (start: Vec, velocity: Vec): void => {
-  drawDots(g, computeTrajectoryPoints(start, velocity));
-};
-
 export function createTrajectoryPreview(): TrajectoryPreview {
   const view = new Container();
   const g = new Graphics();
   view.addChild(g);
-  return { view, show: renderShow(g), clear: () => g.clear() };
+  return { view, show: (points) => drawDots(g, points), clear: () => g.clear() };
 }

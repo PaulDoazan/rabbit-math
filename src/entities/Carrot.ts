@@ -1,12 +1,15 @@
 import Matter from "matter-js";
-import { Container, Graphics } from "pixi.js";
+import { Container, Sprite, Texture } from "pixi.js";
 import {
   CARROT_DENSITY,
   CARROT_FRICTION,
   CARROT_RADIUS,
   CARROT_RESTITUTION,
 } from "../config/physics";
-import { COLORS, STROKE } from "../config/theme";
+
+const CARROT_URL = `${import.meta.env.BASE_URL}assets/carot.png`;
+const CARROT_VIEW_WIDTH = 24 * 0.75;
+const CARROT_VIEW_HEIGHT = (CARROT_VIEW_WIDTH * 631) / 248;
 
 export interface Vec {
   x: number;
@@ -28,16 +31,12 @@ interface State {
   launched: boolean;
 }
 
-const drawCarrot = (g: Graphics) => {
-  g.poly([0, 16, -8, -10, 8, -10])
-    .fill(COLORS.carrot)
-    .stroke({ width: STROKE.normal, color: COLORS.outline });
-  g.poly([-4, -12, -6, -20, -2, -22, -1, -12])
-    .fill(COLORS.carrotLeaf)
-    .stroke({ width: STROKE.thin, color: COLORS.outline });
-  g.poly([1, -12, 0, -20, 5, -20, 4, -12])
-    .fill(COLORS.carrotLeaf)
-    .stroke({ width: STROKE.thin, color: COLORS.outline });
+const createCarrotSprite = (): Sprite => {
+  const sprite = new Sprite(Texture.from(CARROT_URL));
+  sprite.anchor.set(0.5);
+  sprite.width = CARROT_VIEW_WIDTH;
+  sprite.height = CARROT_VIEW_HEIGHT;
+  return sprite;
 };
 
 const makeBody = (at: Vec): Matter.Body => {
@@ -76,9 +75,7 @@ const buildApi = (state: State): Carrot => ({
 
 export function createCarrot(at: Vec): Carrot {
   const view = new Container();
-  const g = new Graphics();
-  drawCarrot(g);
-  view.addChild(g);
+  view.addChild(createCarrotSprite());
   view.position.set(at.x, at.y);
   return buildApi({ view, body: makeBody(at), launched: false });
 }

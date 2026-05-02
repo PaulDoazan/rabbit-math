@@ -3,7 +3,7 @@ import { createTree } from "../../src/entities/Tree";
 
 describe("Tree", () => {
   it("returns a non-null view container", () => {
-    const tree = createTree();
+    const tree = createTree(4);
     expect(tree.view).toBeDefined();
   });
 });
