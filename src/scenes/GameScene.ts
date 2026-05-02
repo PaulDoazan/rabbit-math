@@ -7,8 +7,13 @@ import { createMathSign, type MathSign } from "../entities/MathSign";
 import { createCarrotCounter, type CarrotCounter } from "../entities/CarrotCounter";
 import { createGearButton, type GearButton } from "../entities/GearButton";
 import { createFullscreenButton, type FullscreenButton } from "../entities/FullscreenButton";
-import { TREE_PERCHES } from "../config/dimensions";
+import { TREE_PERCHES_BY_COUNT, type Perch } from "../config/dimensions";
 import type { Settings } from "../services/Settings";
+import {
+  CARROTS_PER_ROUND,
+  DEFAULT_DIFFICULTY,
+  ROUNDS_PER_SESSION,
+} from "../domain/sessionConfig";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Scene } from "../core/Scene";
 import { generateSession } from "../domain/QuestionGenerator";
@@ -43,20 +48,25 @@ interface Parts {
   fullscreen: FullscreenButton;
   rabbits: Rabbit[];
   session: Session;
+  perches: ReadonlyArray<Perch>;
 }
 
 const newSession = (settings: Settings): Session => {
   const rounds = generateSession({
     pairs: settings.selectedPairs,
-    difficulty: settings.difficulty,
-    count: settings.roundsPerSession,
+    difficulty: DEFAULT_DIFFICULTY,
+    count: ROUNDS_PER_SESSION,
+    choicesCount: settings.rabbitsCount,
     seed: Date.now(),
   });
-  return createSession({ rounds, carrotsPerRound: settings.carrotsPerRound });
+  return createSession({ rounds, carrotsPerRound: CARROTS_PER_ROUND });
 };
 
-const buildRabbits = (choices: readonly number[]): Rabbit[] =>
-  TREE_PERCHES.map((p, i) => {
+const buildRabbits = (
+  choices: readonly number[],
+  perches: ReadonlyArray<Perch>,
+): Rabbit[] =>
+  perches.map((p, i) => {
     const r = createRabbit({ position: { x: p.x, y: p.y } });
     r.setNumber(choices[i] ?? 0);
     return r;
@@ -65,16 +75,17 @@ const buildRabbits = (choices: readonly number[]): Rabbit[] =>
 const assembleScene = (deps: GameSceneDeps): Parts => {
   const view = new Container();
   const background = createBackground();
-  const tree = createTree();
+  const tree = createTree(deps.settings.rabbitsCount);
   const slingshot = createSlingshot();
   const sign = createMathSign();
-  const counter = createCarrotCounter(deps.settings.carrotsPerRound);
+  const counter = createCarrotCounter(CARROTS_PER_ROUND - 1);
   const gear = createGearButton({ onTap: deps.onOpenSettings });
   const fullscreen = createFullscreenButton({ onTap: deps.onToggleFullscreen });
   const session = newSession(deps.settings);
-  const rabbits = buildRabbits(session.currentQuestion().choices);
+  const perches = TREE_PERCHES_BY_COUNT[deps.settings.rabbitsCount];
+  const rabbits = buildRabbits(session.currentQuestion().choices, perches);
   sign.setQuestion(session.currentQuestion());
-  return { view, background, tree, slingshot, sign, counter, gear, fullscreen, rabbits, session };
+  return { view, background, tree, slingshot, sign, counter, gear, fullscreen, rabbits, session, perches };
 };
 
 const attachChildren = (parts: Parts): void => {
@@ -100,7 +111,7 @@ const wireFlow = (deps: GameSceneDeps, parts: Parts): RoundFlow =>
     sign: parts.sign,
     counter: parts.counter,
     session: parts.session,
-    settings: deps.settings,
+    perches: parts.perches,
     delay: deps.delay ?? defaultDelay,
     onSessionEnd: () => deps.onSessionRestart(),
   });

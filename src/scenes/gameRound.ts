@@ -2,16 +2,18 @@ import Matter from "matter-js";
 import { Container, Rectangle, type FederatedPointerEvent } from "pixi.js";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, GROUND_Y } from "../config/dimensions";
 import { createCarrot, type Carrot } from "../entities/Carrot";
-import type { Rabbit } from "../entities/Rabbit";
+import { spawnHalfCarrotEffect } from "../entities/HalfCarrot";
+import { MOUTH_TWEEN_MS, type Rabbit } from "../entities/Rabbit";
 import type { Slingshot } from "../entities/Slingshot";
 import type { MathSign } from "../entities/MathSign";
 import type { CarrotCounter } from "../entities/CarrotCounter";
 import { createSlingshotInput, type SlingshotInput } from "../systems/SlingshotInput";
-import { createTrajectoryPreview, type TrajectoryPreview } from "../systems/TrajectoryPreview";
+import { computeTrajectoryPoints, createTrajectoryPreview, type TrajectoryPreview } from "../systems/TrajectoryPreview";
 import { classifyHit } from "../systems/CollisionHandler";
 import type { Session } from "../domain/Session";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
-import type { Settings } from "../services/Settings";
+import type { Perch } from "../config/dimensions";
+import { CARROTS_PER_ROUND } from "../domain/sessionConfig";
 import { playEndOfSession } from "./endOfSession";
 import { fadeOutAndRemove, purgeOwnedBodies } from "./gameRoundCleanup";
 import { assignNumbersForRound, playMancheTransition } from "./manche";
@@ -26,7 +28,7 @@ export interface RoundFlowDeps {
   sign: MathSign;
   counter: CarrotCounter;
   session: Session;
-  settings: Settings;
+  perches: ReadonlyArray<Perch>;
   delay: (ms: number) => Promise<void>;
   onSessionEnd(): void;
 }
@@ -84,10 +86,45 @@ const findHit = (d: RoundFlowDeps, p: Vec): number => {
   return c.kind === "rabbit" ? c.index : -1;
 };
 
+const findTargetedHit = (
+  d: RoundFlowDeps,
+  points: readonly Vec[],
+): { rabbitIdx: number; trimAt: number } => {
+  const aabbs = aabbsOf(d.rabbits);
+  for (let i = 0; i < points.length; i++) {
+    const c = classifyHit(points[i]!, aabbs);
+    if (c.kind === "rabbit") return { rabbitIdx: c.index, trimAt: i + 1 };
+  }
+  return { rabbitIdx: -1, trimAt: points.length };
+};
+
+const updateAimedRabbits = (d: RoundFlowDeps, targetedIdx: number): void => {
+  d.rabbits.forEach((r, i) => r.setAimed(i === targetedIdx));
+};
+
+const TRAJ_SIM_DT_MS = 1000 / 60;
+
+const closeMouthsForRelease = (
+  d: RoundFlowDeps,
+  l: Live,
+  targetIdx: number,
+  trimAt: number,
+): void => {
+  d.rabbits.forEach((r, i) => { if (i !== targetIdx) r.setAimed(false); });
+  if (targetIdx < 0) return;
+  const target = d.rabbits[targetIdx]!;
+  const timeToImpactMs = trimAt * TRAJ_SIM_DT_MS;
+  const delayMs = Math.max(0, timeToImpactMs - MOUTH_TWEEN_MS);
+  void d.delay(delayMs).then(() => {
+    if (l.destroyed) return;
+    target.setAimed(false);
+  });
+};
+
 const refresh = (d: RoundFlowDeps): void => {
   const q = d.session.currentQuestion();
   d.sign.setQuestion(q); assignNumbersForRound(d.rabbits, q);
-  d.counter.setRemaining(d.settings.carrotsPerRound);
+  d.counter.setRemaining(CARROTS_PER_ROUND - 1);
 };
 
 const removeCarrot = (d: RoundFlowDeps, l: Live): void => {
@@ -119,13 +156,13 @@ const advance = async (d: RoundFlowDeps, l: Live): Promise<void> => {
   d.session.nextRound();
   if (l.destroyed) return;
   if (d.session.isOver()) return void endSession(d, l);
-  if (d.rabbits.every((r) => r.isFallen())) await playMancheTransition({ view: d.view, rabbits: d.rabbits });
+  if (d.rabbits.every((r) => r.isFallen())) await playMancheTransition({ view: d.view, rabbits: d.rabbits, perches: d.perches });
   if (l.destroyed) return;
   refresh(d); reload(d, l); l.resolving = false;
 };
 
 const continueOrEnd = (d: RoundFlowDeps, l: Live): void => {
-  d.counter.setRemaining(d.session.snapshot().carrotsLeft);
+  d.counter.setRemaining(d.session.snapshot().carrotsLeft - 1);
   if (d.session.snapshot().phase === "aiming") {
     l.carrot = loadCarrot(d, l); l.resolving = false; return;
   }
@@ -135,6 +172,9 @@ const continueOrEnd = (d: RoundFlowDeps, l: Live): void => {
 const onCorrect = (d: RoundFlowDeps, l: Live, idx: number): void => {
   const r = d.rabbits[idx]!;
   d.session.startResolving(); d.session.recordHit();
+  const impactVel = { x: l.carrot.body.velocity.x, y: l.carrot.body.velocity.y };
+  const mouth = { x: r.position.x, y: r.position.y + 4 };
+  void spawnHalfCarrotEffect(d.view, mouth, impactVel, d.delay);
   void r.playBitePartialAndFall(GROUND_Y - 30);
   r.markFallen();
   removeCarrot(d, l);
@@ -180,13 +220,23 @@ const aimCb = (d: RoundFlowDeps, l: Live) => (): void => {
   const s = d.slingshot.carrotPosition();
   setBodyAt(l.carrot, s);
   d.slingshot.drawElasticTo(s);
-  l.preview.show(s, d.slingshot.releaseVelocity());
+  const points = computeTrajectoryPoints(s, d.slingshot.releaseVelocity());
+  const { rabbitIdx, trimAt } = findTargetedHit(d, points);
+  l.preview.show(points.slice(0, trimAt));
+  updateAimedRabbits(d, rabbitIdx);
 };
 
 const releaseCb = (d: RoundFlowDeps, l: Live) => (v: Vec): void => {
   l.preview.clear();
   d.slingshot.clearElastic();
-  if (d.session.snapshot().phase !== "aiming") return;
+  if (d.session.snapshot().phase !== "aiming") {
+    updateAimedRabbits(d, -1);
+    return;
+  }
+  const start = { x: l.carrot.body.position.x, y: l.carrot.body.position.y };
+  const points = computeTrajectoryPoints(start, v);
+  const { rabbitIdx, trimAt } = findTargetedHit(d, points);
+  closeMouthsForRelease(d, l, rabbitIdx, trimAt);
   l.carrot.launch(v);
 };
 

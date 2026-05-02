@@ -13,6 +13,8 @@ export interface Vec {
   y: number;
 }
 
+export const MOUTH_TWEEN_MS = 90;
+
 export interface Rabbit {
   readonly view: Container;
   setNumber(n: number): void;
@@ -21,6 +23,7 @@ export interface Rabbit {
   markFallen(): void;
   getCollisionAabb(): Aabb;
   position: Vec;
+  setAimed(aimed: boolean): void;
   playShakeNo(): Promise<void>;
   playBitePartialAndFall(landingY: number): Promise<void>;
   playHopInPlace(): Promise<void>;
@@ -61,6 +64,15 @@ const drawMouth = (g: Graphics): void => {
     .stroke({ width: STROKE.thin, color: COLORS.outline, cap: "round" });
 };
 
+const buildOpenMouth = (): Graphics => {
+  const g = new Graphics();
+  g.ellipse(0, 0, 7, 5)
+    .fill(COLORS.outline);
+  g.position.set(0, 4);
+  g.scale.set(0);
+  return g;
+};
+
 const drawSign = (g: Graphics): void => {
   g.roundRect(-20, 8, 40, 24, 4)
     .fill(COLORS.signFill)
@@ -94,12 +106,14 @@ const TEXT_STYLE = new TextStyle({
 interface State {
   number: number;
   fallen: boolean;
+  aimed: boolean;
   position: Vec;
   view: Container;
   text: Text;
+  openMouth: Graphics;
 }
 
-const buildView = (pos: Vec): { view: Container; text: Text } => {
+const buildView = (pos: Vec): { view: Container; text: Text; openMouth: Graphics } => {
   const view = new Container();
   view.position.set(pos.x, pos.y);
   const g = new Graphics();
@@ -110,11 +124,13 @@ const buildView = (pos: Vec): { view: Container; text: Text } => {
   drawSign(g);
   drawPaws(g);
   view.addChild(g);
+  const openMouth = buildOpenMouth();
+  view.addChild(openMouth);
   const text = new Text({ text: "", style: TEXT_STYLE });
   text.anchor.set(0.5);
   text.position.set(0, 20);
   view.addChild(text);
-  return { view, text };
+  return { view, text, openMouth };
 };
 
 const aabbAt = (pos: Vec): Aabb => ({
@@ -134,6 +150,7 @@ const animateShakeNo = async (view: Container, originalX: number): Promise<void>
 
 const animateBiteAndFall = async (state: State, landingY: number): Promise<void> => {
   state.fallen = true;
+  state.openMouth.scale.set(0);
   await tweenObject(state.view.scale, { x: 1.05, y: 0.95 }, 80);
   await tweenObject(state.view.scale, { x: 1, y: 1 }, 80);
   state.position.y = landingY;
@@ -153,6 +170,12 @@ const animateRunAwayRight = async (state: State, offscreenX: number): Promise<vo
   await tweenObject(state.view.position, { x: offscreenX }, 1000);
 };
 
+const setAimed = (state: State, aimed: boolean): void => {
+  if (state.aimed === aimed || state.fallen) return;
+  state.aimed = aimed;
+  void tweenObject(state.openMouth.scale, { x: aimed ? 1 : 0, y: aimed ? 1 : 0 }, MOUTH_TWEEN_MS);
+};
+
 const buildApi = (state: State): Rabbit => ({
   view: state.view,
   position: state.position,
@@ -166,6 +189,7 @@ const buildApi = (state: State): Rabbit => ({
     state.fallen = true;
   },
   getCollisionAabb: () => aabbAt(state.position),
+  setAimed: (aimed) => setAimed(state, aimed),
   playShakeNo: () => animateShakeNo(state.view, state.position.x),
   playBitePartialAndFall: (y) => animateBiteAndFall(state, y),
   playHopInPlace: () => animateHopInPlace(state),
@@ -173,13 +197,15 @@ const buildApi = (state: State): Rabbit => ({
 });
 
 export function createRabbit(opts: { position: Vec }): Rabbit {
-  const { view, text } = buildView(opts.position);
+  const { view, text, openMouth } = buildView(opts.position);
   const state: State = {
     number: 0,
     fallen: false,
+    aimed: false,
     position: { ...opts.position },
     view,
     text,
+    openMouth,
   };
   return buildApi(state);
 }

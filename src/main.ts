@@ -1,4 +1,4 @@
-import { Ticker } from "pixi.js";
+import { Assets, Ticker } from "pixi.js";
 import { createApp } from "./core/App";
 import { createPhysicsWorld } from "./core/PhysicsWorld";
 import { createSceneManager } from "./core/SceneManager";
@@ -9,6 +9,7 @@ import { createAudio } from "./services/Audio";
 import { installOrientationLock } from "./ui/OrientationLock";
 import { openCalcsPicker } from "./ui/CalcsPicker";
 import { tickTweens } from "./entities/animations/Tween";
+import { TREE_ASSET_URLS } from "./entities/Tree";
 
 type SM = ReturnType<typeof createSceneManager>;
 type Physics = ReturnType<typeof createPhysicsWorld>;
@@ -48,23 +49,28 @@ const startGame = (sm: SM, physics: Physics, ref: SettingsRef): void => {
   sm.goTo(game);
 };
 
-const setupAudio = (settingsRef: SettingsRef) =>
+const setupAudio = () =>
   createAudio({
     AudioCtor: Audio,
-    sfxEnabled: () => settingsRef.current.soundEnabled,
-    musicEnabled: () => settingsRef.current.musicEnabled,
   });
 
 async function main(): Promise<void> {
   const root = document.getElementById("game-root");
   if (!root) throw new Error("Missing #game-root");
   installOrientationLock(document.body);
+  const base = import.meta.env.BASE_URL;
+  await Assets.load([
+    `${base}assets/sun.png`,
+    `${base}assets/cog.png`,
+    `${base}assets/carot.png`,
+    ...TREE_ASSET_URLS,
+  ]);
   const app = await createApp(root);
   const physics = createPhysicsWorld();
   const sm = createSceneManager(app.stage);
   const settingsRef = { current: loadSettings() };
   saveSettings(settingsRef.current);
-  const audio = setupAudio(settingsRef);
+  const audio = setupAudio();
   audio.startMusic();
   startGame(sm, physics, settingsRef);
   Ticker.shared.add((t) => {

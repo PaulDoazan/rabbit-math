@@ -1,11 +1,10 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Sprite, Texture } from "pixi.js";
 import {
   COUNTER_FIRST_X,
   COUNTER_GAP,
   COUNTER_TILT_DEG,
   COUNTER_Y,
 } from "../config/dimensions";
-import { COLORS, STROKE } from "../config/theme";
 
 export interface CarrotCounter {
   readonly view: Container;
@@ -13,26 +12,20 @@ export interface CarrotCounter {
   remaining(): number;
 }
 
-const drawIcon = (g: Graphics) => {
-  g.poly([0, 16, -8, -10, 8, -10])
-    .fill(COLORS.carrot)
-    .stroke({ width: STROKE.normal, color: COLORS.outline });
-  g.poly([-4, -12, -6, -20, -2, -22, -1, -12])
-    .fill(COLORS.carrotLeaf)
-    .stroke({ width: STROKE.thin, color: COLORS.outline });
-  g.poly([1, -12, 0, -20, 5, -20, 4, -12])
-    .fill(COLORS.carrotLeaf)
-    .stroke({ width: STROKE.thin, color: COLORS.outline });
-};
+const CARROT_URL = `${import.meta.env.BASE_URL}assets/carot.png`;
+const ICON_WIDTH = 22 * 0.75;
+const ICON_HEIGHT = (ICON_WIDTH * 631) / 248;
 
-const buildIcons = (total: number): Graphics[] => {
-  const icons: Graphics[] = [];
+const buildIcons = (total: number): Sprite[] => {
+  const icons: Sprite[] = [];
   for (let i = 0; i < total; i++) {
-    const g = new Graphics();
-    drawIcon(g);
-    g.position.set(COUNTER_FIRST_X + i * COUNTER_GAP, COUNTER_Y);
-    g.rotation = (COUNTER_TILT_DEG * Math.PI) / 180;
-    icons.push(g);
+    const sprite = new Sprite(Texture.from(CARROT_URL));
+    sprite.anchor.set(0.5);
+    sprite.width = ICON_WIDTH;
+    sprite.height = ICON_HEIGHT;
+    sprite.position.set(COUNTER_FIRST_X + i * COUNTER_GAP, COUNTER_Y);
+    sprite.rotation = (COUNTER_TILT_DEG * Math.PI) / 180;
+    icons.push(sprite);
   }
   return icons;
 };
@@ -40,15 +33,15 @@ const buildIcons = (total: number): Graphics[] => {
 export function createCarrotCounter(total: number): CarrotCounter {
   const view = new Container();
   const icons = buildIcons(total);
-  for (const g of icons) view.addChild(g);
+  for (const s of icons) view.addChild(s);
   let current = total;
   return {
     view,
     remaining: () => current,
     setRemaining: (n) => {
       current = Math.max(0, Math.min(total, n));
-      icons.forEach((g, i) => {
-        g.alpha = i < current ? 1 : 0;
+      icons.forEach((s, i) => {
+        s.alpha = i < current ? 1 : 0;
       });
     },
   };

@@ -13,8 +13,6 @@ export interface AudioApi {
 
 export interface AudioDeps {
   AudioCtor: typeof Audio;
-  sfxEnabled: () => boolean;
-  musicEnabled: () => boolean;
   sfxSrc?: Record<SoundId, string> | undefined;
   musicSrc?: string | undefined;
 }
@@ -34,7 +32,6 @@ interface AudioState {
 }
 
 const startMusicImpl = (deps: AudioDeps, state: AudioState): void => {
-  if (!deps.musicEnabled()) return;
   if (!state.music) {
     state.music = new deps.AudioCtor(deps.musicSrc ?? `${BASE}assets/sounds/music.mp3`);
     state.music.loop = true;
@@ -47,7 +44,6 @@ export function createAudio(deps: AudioDeps): AudioApi {
   const state: AudioState = { music: null };
   return {
     playSfx: (id) => {
-      if (!deps.sfxEnabled()) return;
       void new deps.AudioCtor(sfx[id]).play();
     },
     startMusic: () => startMusicImpl(deps, state),

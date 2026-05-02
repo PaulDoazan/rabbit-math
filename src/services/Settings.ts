@@ -1,34 +1,24 @@
 import { readJson, writeJson } from "./Storage";
-import type { Difficulty } from "../domain/DifficultyConfig";
 import type { Pair } from "../domain/tables";
+
+export type RabbitsCount = 4 | 5 | 6 | 7 | 8;
 
 const tableOf4 = (): Pair[] =>
   Array.from({ length: 10 }, (_, i) => ({ a: 4, b: i + 1 }));
 
 export interface Settings {
   selectedPairs: Pair[];
-  roundsPerSession: number;
-  carrotsPerRound: number;
-  difficulty: Difficulty;
+  rabbitsCount: RabbitsCount;
   tapMode: boolean;
-  soundEnabled: boolean;
-  musicEnabled: boolean;
 }
 
 export const SETTINGS_KEY = "rabbit-math.settings";
 
 export const DEFAULT_SETTINGS: Settings = {
   selectedPairs: tableOf4(),
-  roundsPerSession: 10,
-  carrotsPerRound: 3,
-  difficulty: "medium",
+  rabbitsCount: 4,
   tapMode: false,
-  soundEnabled: true,
-  musicEnabled: true,
 };
-
-const isDifficulty = (v: unknown): v is Difficulty =>
-  v === "easy" || v === "medium" || v === "hard";
 
 const isPair = (v: unknown): v is Pair => {
   if (!v || typeof v !== "object") return false;
@@ -39,25 +29,30 @@ const isPair = (v: unknown): v is Pair => {
 const isPairArray = (v: unknown): v is Pair[] =>
   Array.isArray(v) && v.every(isPair);
 
+const isRabbitsCount = (v: unknown): v is RabbitsCount =>
+  v === 4 || v === 5 || v === 6 || v === 7 || v === 8;
+
 const isShape = (v: unknown): v is Settings => {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
+  const knownKeys = new Set(["selectedPairs", "rabbitsCount", "tapMode"]);
+  if (!Object.keys(o).every((k) => knownKeys.has(k))) return false;
   return (
     isPairArray(o.selectedPairs) &&
-    typeof o.roundsPerSession === "number" &&
-    typeof o.carrotsPerRound === "number" &&
-    isDifficulty(o.difficulty) &&
-    typeof o.tapMode === "boolean" &&
-    typeof o.soundEnabled === "boolean" &&
-    typeof o.musicEnabled === "boolean"
+    isRabbitsCount(o.rabbitsCount) &&
+    typeof o.tapMode === "boolean"
   );
+};
+
+const clampRabbits = (n: number): RabbitsCount => {
+  const i = Math.max(4, Math.min(8, Math.floor(n)));
+  return i as RabbitsCount;
 };
 
 export function validateSettings(s: Settings): Settings {
   return {
     ...s,
-    roundsPerSession: Math.max(1, Math.floor(s.roundsPerSession)),
-    carrotsPerRound: Math.max(1, Math.floor(s.carrotsPerRound)),
+    rabbitsCount: clampRabbits(s.rabbitsCount),
     selectedPairs: s.selectedPairs.length >= 1 ? s.selectedPairs : tableOf4(),
   };
 }

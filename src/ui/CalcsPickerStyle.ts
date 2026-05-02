@@ -57,6 +57,8 @@ export const CALCS_PICKER_CSS = `
 }
 .cp-section { margin-bottom: 14px; }
 .cp-section-header {
+  display: flex;
+  align-items: center;
   font-size: 16px;
   font-weight: 800;
   padding: 8px 6px;
@@ -65,6 +67,12 @@ export const CALCS_PICKER_CSS = `
   user-select: none;
   background: #ffeec2;
   border-radius: 6px 6px 0 0;
+}
+.cp-section-header input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  margin-right: 12px;
+  accent-color: #ff7a2b;
 }
 .cp-row {
   display: flex;

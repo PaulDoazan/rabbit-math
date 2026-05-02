@@ -7,6 +7,7 @@ export interface SessionRequest {
   readonly pairs: readonly Pair[];
   readonly difficulty: Difficulty;
   readonly count: number;
+  readonly choicesCount: number;
   readonly seed: number;
 }
 
@@ -19,9 +20,14 @@ const pickPair = (pool: readonly Pair[], previous: Pair | null, rng: Rng): Pair 
   return pickFrom(pool, rng);
 };
 
-const buildQuestion = (pair: Pair, difficulty: Difficulty, rng: Rng): Question => {
+const buildQuestion = (
+  pair: Pair,
+  difficulty: Difficulty,
+  choicesCount: number,
+  rng: Rng,
+): Question => {
   const answer = pair.a * pair.b;
-  const distractors = generateDistractors(answer, difficulty, rng);
+  const distractors = generateDistractors(answer, difficulty, choicesCount - 1, rng);
   return { a: pair.a, b: pair.b, answer, choices: shuffle([answer, ...distractors], rng) };
 };
 
@@ -32,7 +38,7 @@ export function generateSession(req: SessionRequest): Question[] {
   let previous: Pair | null = null;
   for (let i = 0; i < req.count; i++) {
     const pair = pickPair(pool, previous, rng);
-    out.push(buildQuestion(pair, req.difficulty, rng));
+    out.push(buildQuestion(pair, req.difficulty, req.choicesCount, rng));
     previous = pair;
   }
   return out;

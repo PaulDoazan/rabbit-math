@@ -2,12 +2,9 @@ import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { COLORS, STROKE } from "../config/theme";
 import { DESIGN_HEIGHT, DESIGN_WIDTH } from "../config/dimensions";
 import type { Pair } from "../domain/tables";
-import type { Difficulty } from "../domain/DifficultyConfig";
-import type { Settings } from "../services/Settings";
+import type { Settings, RabbitsCount } from "../services/Settings";
 
-export const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
-export const ROUNDS_OPTIONS = [5, 10, 15, 20];
-export const CARROTS_OPTIONS = [2, 3, 4];
+export const RABBITS_OPTIONS: ReadonlyArray<RabbitsCount> = [4, 5, 6, 7, 8];
 
 export const cycle = <T,>(arr: readonly T[], current: T): T => {
   const idx = arr.indexOf(current);
@@ -26,15 +23,12 @@ export const arrayEqualPairs = (
 
 export const sessionImpactingChanged = (a: Settings, b: Settings): boolean =>
   !arrayEqualPairs(a.selectedPairs, b.selectedPairs) ||
-  a.difficulty !== b.difficulty ||
-  a.roundsPerSession !== b.roundsPerSession;
+  a.rabbitsCount !== b.rabbitsCount;
 
 export const onOff = (b: boolean): string => (b ? "ON" : "OFF");
-export const difficultyLabel = (d: Difficulty): string =>
-  d === "easy" ? "Facile" : d === "medium" ? "Moyen" : "Difficile";
 
 const PANEL_W = 540;
-const PANEL_H = 320;
+const PANEL_H = 220;
 const BACK_ALPHA = 0.6;
 
 const TITLE_STYLE = new TextStyle({
