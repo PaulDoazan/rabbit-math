@@ -42,7 +42,9 @@ describe("Settings invalid data", () => {
     );
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
   });
+});
 
+describe("Settings legacy data", () => {
   it("loadSettings ignores legacy fields and falls back to defaults", () => {
     localStorage.setItem(
       "rabbit-math.settings",
