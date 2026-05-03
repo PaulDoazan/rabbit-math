@@ -54,30 +54,37 @@ const setupAudio = () =>
     AudioCtor: Audio,
   });
 
-async function main(): Promise<void> {
-  const root = document.getElementById("game-root");
-  if (!root) throw new Error("Missing #game-root");
-  installOrientationLock(document.body);
+const preloadAssets = (): Promise<unknown> => {
   const base = import.meta.env.BASE_URL;
-  await Assets.load([
+  return Assets.load([
     `${base}assets/sun.png`,
     `${base}assets/cog.png`,
     `${base}assets/carot.png`,
     ...TREE_ASSET_URLS,
   ]);
-  const app = await createApp(root);
-  const physics = createPhysicsWorld();
-  const sm = createSceneManager(app.stage);
-  const settingsRef = { current: loadSettings() };
-  saveSettings(settingsRef.current);
-  const audio = setupAudio();
-  audio.startMusic();
-  startGame(sm, physics, settingsRef);
+};
+
+const installTicker = (physics: Physics, sm: SM): void => {
   Ticker.shared.add((t) => {
     physics.step(t.deltaMS);
     sm.tick(t.deltaMS);
     tickTweens(performance.now());
   });
+};
+
+async function main(): Promise<void> {
+  const root = document.getElementById("game-root");
+  if (!root) throw new Error("Missing #game-root");
+  installOrientationLock(document.body);
+  await preloadAssets();
+  const app = await createApp(root);
+  const physics = createPhysicsWorld();
+  const sm = createSceneManager(app.stage);
+  const settingsRef = { current: loadSettings() };
+  saveSettings(settingsRef.current);
+  setupAudio().startMusic();
+  startGame(sm, physics, settingsRef);
+  installTicker(physics, sm);
 }
 
 void main();
