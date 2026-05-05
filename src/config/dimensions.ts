@@ -49,7 +49,7 @@ export const TREE_PERCHES_BY_COUNT: Record<RabbitsCount, ReadonlyArray<Perch>> =
     { x: 720, y: 130 },
     { x: 770, y: 175 },
     { x: 665, y: 240 },
-    { x: 770, y: 260 },
+    { x: 820, y: 210 },
     { x: 470, y: 220 },
     { x: 510, y: 290 },
   ],
