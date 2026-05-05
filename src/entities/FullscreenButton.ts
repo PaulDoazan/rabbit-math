@@ -6,8 +6,9 @@ export interface FullscreenButton {
   readonly view: Container;
 }
 
-const CORNER_REACH = 9;
-const CORNER_LENGTH = 6;
+const BODY_RADIUS = FULLSCREEN_BTN_RADIUS;
+const CORNER_REACH = 11;
+const CORNER_LENGTH = 7;
 
 const drawCorner = (g: Graphics, x: number, y: number, dx: number, dy: number): void => {
   g.moveTo(x, y).lineTo(x + dx * CORNER_LENGTH, y)
@@ -23,8 +24,8 @@ const drawCorners = (g: Graphics): void => {
 };
 
 const drawBody = (g: Graphics): void => {
-  g.circle(0, 0, FULLSCREEN_BTN_RADIUS - 4)
-    .fill(COLORS.hudFill)
+  g.circle(0, 0, BODY_RADIUS)
+    .fill(COLORS.cogBody)
     .stroke({ width: STROKE.thick, color: COLORS.outline });
 };
 

@@ -9,10 +9,10 @@ import {
   createCloseButton,
   createConfirmPrompt,
   RABBITS_OPTIONS,
-  cycle,
   sessionImpactingChanged,
   onOff,
 } from "./SettingsPanel";
+import { createStepperRow } from "./SettingsStepperRow";
 
 export interface SettingsSceneDeps {
   initial: Settings;
@@ -72,7 +72,7 @@ interface RowCtx {
 const calcsValueText = (n: number): string => `${n} / 90 calculs`;
 
 const addQuestionsRow = (ctx: RowCtx): void => {
-  const row = createCycleRow("Questions", 0);
+  const row = createCycleRow("Questions", 0, { underline: true });
   const refresh = (): void =>
     row.setValue(calcsValueText(ctx.state.current.selectedPairs.length));
   refresh();
@@ -84,15 +84,26 @@ const addQuestionsRow = (ctx: RowCtx): void => {
   ctx.view.addChild(row.view);
 };
 
+const RABBITS_MIN = RABBITS_OPTIONS[0]!;
+const RABBITS_MAX = RABBITS_OPTIONS[RABBITS_OPTIONS.length - 1]!;
+
 const addRabbitsRow = (ctx: RowCtx): void => {
-  const row = createCycleRow("Nombre de lapins", 1);
-  const refresh = (): void => row.setValue(String(ctx.state.current.rabbitsCount));
+  const row = createStepperRow("Nombre de lapins", 1);
+  const refresh = (): void => {
+    const n = ctx.state.current.rabbitsCount;
+    row.setValue(String(n));
+    row.setEnabled({ minus: n > RABBITS_MIN, plus: n < RABBITS_MAX });
+  };
   refresh();
-  row.onTap(() => {
-    const next = cycle(RABBITS_OPTIONS, ctx.state.current.rabbitsCount);
-    ctx.update({ rabbitsCount: next });
+  const step = (delta: -1 | 1): void => {
+    const n = ctx.state.current.rabbitsCount;
+    const next = n + delta;
+    if (next < RABBITS_MIN || next > RABBITS_MAX) return;
+    ctx.update({ rabbitsCount: next as RabbitsCount });
     refresh();
-  });
+  };
+  row.onMinus(() => step(-1));
+  row.onPlus(() => step(1));
   ctx.view.addChild(row.view);
 };
 

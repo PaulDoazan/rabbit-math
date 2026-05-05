@@ -1,5 +1,5 @@
 import type { Container } from "pixi.js";
-import { DESIGN_WIDTH, GROUND_Y } from "../config/dimensions";
+import { CARROT_GROUND_Y, DESIGN_WIDTH } from "../config/dimensions";
 import { spawnHalfCarrotEffect } from "../entities/HalfCarrot";
 import { classifyHit } from "../systems/CollisionHandler";
 import type { Carrot } from "../entities/Carrot";
@@ -19,6 +19,7 @@ export interface ResolveCtx {
   advance: () => void;
   continueOrEnd: () => void;
   setResolving: (r: boolean) => void;
+  bounceCarrotOff: (rabbitPos: Vec) => void;
 }
 
 const aabbsOf = (rs: readonly Rabbit[]) =>
@@ -30,7 +31,7 @@ const findHit = (rabbits: readonly Rabbit[], p: Vec): number => {
 };
 
 const isLost = (p: Vec, v: Vec): boolean =>
-  p.x < 0 || p.x > DESIGN_WIDTH || (p.y >= GROUND_Y && v.y > 0);
+  p.x < 0 || p.x > DESIGN_WIDTH || (p.y >= CARROT_GROUND_Y && v.y > 0);
 
 const onCorrect = (ctx: ResolveCtx, idx: number): void => {
   const r = ctx.rabbits[idx]!;
@@ -39,17 +40,17 @@ const onCorrect = (ctx: ResolveCtx, idx: number): void => {
   const impactVel = { x: carrot.body.velocity.x, y: carrot.body.velocity.y };
   const mouth = { x: r.position.x, y: r.position.y + 4 };
   void spawnHalfCarrotEffect(ctx.view, mouth, impactVel, ctx.delay);
-  void r.playBitePartialAndFall(GROUND_Y - 30);
+  void r.playBitePartialAndFall(CARROT_GROUND_Y - 30);
   r.markFallen();
   ctx.removeCarrot();
   ctx.advance();
 };
 
 const onWrong = (ctx: ResolveCtx, idx: number): void => {
-  void ctx.rabbits[idx]!.playShakeNo();
+  const r = ctx.rabbits[idx]!;
+  void r.playShakeNo();
   ctx.session.startResolving(); ctx.session.recordMiss();
-  ctx.removeCarrot();
-  ctx.continueOrEnd();
+  ctx.bounceCarrotOff(r.position);
 };
 
 const onMiss = (ctx: ResolveCtx, p: Vec): void => {

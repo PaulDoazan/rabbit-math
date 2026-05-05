@@ -2,7 +2,7 @@ import Matter from "matter-js";
 import { Container, Graphics } from "pixi.js";
 import { COLORS } from "../config/theme";
 import { CARROT_DENSITY, CARROT_FRICTION, CARROT_RADIUS, CARROT_RESTITUTION, GRAVITY_Y } from "../config/physics";
-import { GROUND_Y } from "../config/dimensions";
+import { CARROT_GROUND_Y } from "../config/dimensions";
 
 export interface Vec {
   x: number;
@@ -34,7 +34,7 @@ const simulate = (engine: Matter.Engine, body: Matter.Body): Vec[] => {
     Matter.Engine.update(engine, SIM_DT_MS);
     const p = { x: body.position.x, y: body.position.y };
     out.push(p);
-    if (p.y >= GROUND_Y && body.velocity.y > 0) break;
+    if (p.y >= CARROT_GROUND_Y && body.velocity.y > 0) break;
   }
   Matter.Engine.clear(engine);
   return out;
@@ -50,7 +50,7 @@ const drawDots = (g: Graphics, points: readonly Vec[]): void => {
   g.clear();
   for (let i = 1; i < points.length; i += 3) {
     const p = points[i]!;
-    g.circle(p.x, p.y, 2).fill(COLORS.outline);
+    g.circle(p.x, p.y, 3).fill(COLORS.outline);
   }
 };
 

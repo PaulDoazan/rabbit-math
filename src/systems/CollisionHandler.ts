@@ -1,4 +1,4 @@
-import { GROUND_Y } from "../config/dimensions";
+import { CARROT_GROUND_Y } from "../config/dimensions";
 
 export interface Vec {
   x: number;
@@ -22,5 +22,5 @@ export function classifyHit(point: Vec, aabbs: readonly Aabb[]): HitClassificati
       return { kind: "rabbit", index: i };
     }
   }
-  return point.y >= GROUND_Y ? { kind: "ground" } : { kind: "none" };
+  return point.y >= CARROT_GROUND_Y ? { kind: "ground" } : { kind: "none" };
 }

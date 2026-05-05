@@ -93,23 +93,58 @@ const buildRowTexts = (label: string, y: number): { l: Text; v: Text } => {
   return { l, v };
 };
 
-export function createCycleRow(label: string, rowIndex: number): CycleRow {
+const measureText = (t: Text): { w: number; h: number } | null => {
+  try {
+    return { w: t.width, h: t.height };
+  } catch {
+    return null;
+  }
+};
+
+const drawLabelUnderline = (g: Graphics, l: Text): void => {
+  const m = measureText(l);
+  if (!m) return;
+  g.clear();
+  const lineY = l.y + m.h + 1;
+  g.moveTo(l.x, lineY)
+    .lineTo(l.x + m.w, lineY)
+    .stroke({ width: STROKE.thin, color: COLORS.outline });
+};
+
+interface CycleRowParts {
+  view: Container;
+  l: Text;
+  v: Text;
+  underline: Graphics | null;
+}
+
+const initCycleRowParts = (label: string, rowIndex: number, useUnderline: boolean): CycleRowParts => {
   const view = new Container();
   view.eventMode = "static";
   view.cursor = "pointer";
   const y = PANEL_Y + 50 + rowIndex * ROW_HEIGHT;
   const { l, v } = buildRowTexts(label, y);
+  const underline = useUnderline ? new Graphics() : null;
   view.addChild(l, v);
+  if (underline) view.addChild(underline);
+  return { view, l, v, underline };
+};
+
+export function createCycleRow(
+  label: string,
+  rowIndex: number,
+  opts: { underline?: boolean } = {},
+): CycleRow {
+  const { view, l, v, underline } = initCycleRowParts(label, rowIndex, !!opts.underline);
   let handler: (() => void) | null = null;
   view.on("pointerup", () => handler?.());
   return {
     view,
     setValue: (s) => {
       v.text = s;
+      if (underline) drawLabelUnderline(underline, l);
     },
-    onTap: (h) => {
-      handler = h;
-    },
+    onTap: (h) => { handler = h; },
   };
 }
 
