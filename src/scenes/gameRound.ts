@@ -1,6 +1,6 @@
 import Matter from "matter-js";
 import { Container, Rectangle, type FederatedPointerEvent } from "pixi.js";
-import { DESIGN_HEIGHT, DESIGN_WIDTH, GROUND_Y } from "../config/dimensions";
+import { CARROT_GROUND_Y, DESIGN_HEIGHT, DESIGN_WIDTH } from "../config/dimensions";
 import { createCarrot, type Carrot } from "../entities/Carrot";
 import type { Rabbit } from "../entities/Rabbit";
 import type { Slingshot } from "../entities/Slingshot";
@@ -45,6 +45,7 @@ interface Live {
   preview: TrajectoryPreview;
   input: SlingshotInput;
   resolving: boolean;
+  bouncing: boolean;
   destroyed: boolean;
   owned: Set<Matter.Body>;
 }
@@ -90,7 +91,7 @@ const removeCarrot = (d: RoundFlowDeps, l: Live): void => {
 const reload = (d: RoundFlowDeps, l: Live): void => { removeCarrot(d, l); l.carrot = loadCarrot(d, l); };
 
 const restAt = (d: RoundFlowDeps, l: Live, p: Vec): void => {
-  l.carrot.restAtGround({ x: p.x, y: GROUND_Y });
+  l.carrot.restAtGround({ x: p.x, y: CARROT_GROUND_Y });
   l.carrot.syncView();
   void fadeOutAndRemove({ physics: d.physics, delay: d.delay, owned: l.owned }, l.carrot);
 };
@@ -123,6 +124,28 @@ const continueOrEnd = (d: RoundFlowDeps, l: Live): void => {
   void advance(d, l);
 };
 
+const bounceCarrotOff = (l: Live, _rabbitPos: Vec): void => {
+  const b = l.carrot.body;
+  const v = b.velocity;
+  Matter.Body.setVelocity(b, {
+    x: -v.x * 0.5,
+    y: -Math.abs(v.y) * 0.4 - 3,
+  });
+  l.bouncing = true;
+};
+
+const checkBounceLanding = (d: RoundFlowDeps, l: Live): void => {
+  const b = l.carrot.body;
+  const p = { x: b.position.x, y: b.position.y };
+  const v = b.velocity;
+  const grounded = p.y >= CARROT_GROUND_Y && v.y > 0;
+  const offscreen = p.x < 0 || p.x > DESIGN_WIDTH;
+  if (!grounded && !offscreen) return;
+  l.bouncing = false;
+  restAt(d, l, p);
+  continueOrEnd(d, l);
+};
+
 const resolveCtx = (d: RoundFlowDeps, l: Live): ResolveCtx => ({
   rabbits: d.rabbits, view: d.view, session: d.session, delay: d.delay,
   carrot: () => l.carrot,
@@ -131,11 +154,13 @@ const resolveCtx = (d: RoundFlowDeps, l: Live): ResolveCtx => ({
   advance: () => void advance(d, l),
   continueOrEnd: () => continueOrEnd(d, l),
   setResolving: (r) => { l.resolving = r; },
+  bounceCarrotOff: (rabbitPos) => bounceCarrotOff(l, rabbitPos),
 });
 
 const tickFlow = (d: RoundFlowDeps, l: Live) => (): void => {
   if (l.destroyed || !l.carrot.isLaunched()) return;
   l.carrot.syncView();
+  if (l.bouncing) { checkBounceLanding(d, l); return; }
   if (l.resolving) return;
   processCarrotImpact(resolveCtx(d, l));
 };
@@ -171,7 +196,7 @@ const wireEvents = (d: RoundFlowDeps, l: Live): (() => void) => {
 const buildLive = (d: RoundFlowDeps): Live => {
   const preview = createTrajectoryPreview();
   d.view.addChild(preview.view);
-  const live = { carrot: undefined, preview, input: undefined, resolving: false, destroyed: false, owned: new Set() } as unknown as Live;
+  const live = { carrot: undefined, preview, input: undefined, resolving: false, bouncing: false, destroyed: false, owned: new Set() } as unknown as Live;
   live.carrot = loadCarrot(d, live);
   const ctx = aimContext(d, live);
   live.input = createSlingshotInput({ slingshot: d.slingshot, onAim: makeOnAim(ctx), onRelease: makeOnRelease(ctx) });

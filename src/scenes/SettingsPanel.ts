@@ -84,6 +84,14 @@ export interface CycleRow {
   onTap(handler: () => void): void;
 }
 
+export interface StepperRow {
+  readonly view: Container;
+  setValue(label: string): void;
+  setEnabled(opts: { minus: boolean; plus: boolean }): void;
+  onMinus(handler: () => void): void;
+  onPlus(handler: () => void): void;
+}
+
 const buildRowTexts = (label: string, y: number): { l: Text; v: Text } => {
   const l = new Text({ text: label, style: LABEL_STYLE });
   l.position.set(PANEL_X + 24, y);
@@ -93,22 +101,124 @@ const buildRowTexts = (label: string, y: number): { l: Text; v: Text } => {
   return { l, v };
 };
 
-export function createCycleRow(label: string, rowIndex: number): CycleRow {
+export function createCycleRow(
+  label: string,
+  rowIndex: number,
+  opts: { underline?: boolean } = {},
+): CycleRow {
   const view = new Container();
   view.eventMode = "static";
   view.cursor = "pointer";
   const y = PANEL_Y + 50 + rowIndex * ROW_HEIGHT;
   const { l, v } = buildRowTexts(label, y);
+  const underline = opts.underline ? new Graphics() : null;
   view.addChild(l, v);
+  if (underline) view.addChild(underline);
+  const redrawUnderline = (): void => {
+    if (!underline) return;
+    let w: number;
+    let h: number;
+    try {
+      w = l.width;
+      h = l.height;
+    } catch {
+      return;
+    }
+    underline.clear();
+    const left = l.x;
+    const right = left + w;
+    const lineY = l.y + h + 1;
+    underline
+      .moveTo(left, lineY)
+      .lineTo(right, lineY)
+      .stroke({ width: STROKE.thin, color: COLORS.outline });
+  };
   let handler: (() => void) | null = null;
   view.on("pointerup", () => handler?.());
   return {
     view,
     setValue: (s) => {
       v.text = s;
+      redrawUnderline();
     },
     onTap: (h) => {
       handler = h;
+    },
+  };
+}
+
+const STEPPER_BTN_R = 11;
+const STEPPER_BTN_TEXT_STYLE = new TextStyle({
+  fontFamily: "ui-rounded, system-ui",
+  fontWeight: "800",
+  fontSize: 18,
+  fill: COLORS.outline,
+});
+
+interface StepperButton {
+  view: Container;
+  setEnabled(b: boolean): void;
+}
+
+const createStepperButton = (
+  symbol: string,
+  cx: number,
+  cy: number,
+): StepperButton => {
+  const view = new Container();
+  view.eventMode = "static";
+  view.cursor = "pointer";
+  const bg = new Graphics();
+  bg.circle(cx, cy, STEPPER_BTN_R)
+    .fill(COLORS.sky)
+    .stroke({ width: STROKE.normal, color: COLORS.outline });
+  const t = new Text({ text: symbol, style: STEPPER_BTN_TEXT_STYLE });
+  t.anchor.set(0.5);
+  t.position.set(cx, cy - 1);
+  view.addChild(bg, t);
+  return {
+    view,
+    setEnabled: (enabled) => {
+      view.alpha = enabled ? 1 : 0.35;
+      view.cursor = enabled ? "pointer" : "default";
+      view.eventMode = enabled ? "static" : "none";
+    },
+  };
+};
+
+export function createStepperRow(label: string, rowIndex: number): StepperRow {
+  const view = new Container();
+  const y = PANEL_Y + 50 + rowIndex * ROW_HEIGHT;
+  const l = new Text({ text: label, style: LABEL_STYLE });
+  l.position.set(PANEL_X + 24, y);
+  const cy = y + 9;
+  const plusCx = PANEL_X + PANEL_W - 24 - STEPPER_BTN_R;
+  const minusCx = plusCx - 64;
+  const valueCx = (plusCx + minusCx) / 2;
+  const v = new Text({ text: "", style: VALUE_STYLE });
+  v.anchor.set(0.5);
+  v.position.set(valueCx, cy);
+  const minusBtn = createStepperButton("−", minusCx, cy);
+  const plusBtn = createStepperButton("+", plusCx, cy);
+  view.addChild(l, v, minusBtn.view, plusBtn.view);
+  let onMinus: (() => void) | null = null;
+  let onPlus: (() => void) | null = null;
+  minusBtn.view.on("pointerup", () => onMinus?.());
+  plusBtn.view.on("pointerup", () => onPlus?.());
+  return {
+    view,
+    setValue: (s) => {
+      v.text = s;
+    },
+    setEnabled: ({ minus, plus }) => {
+      minusBtn.setEnabled(minus);
+      plusBtn.setEnabled(plus);
+    },
+    onMinus: (h) => {
+      onMinus = h;
+    },
+    onPlus: (h) => {
+      onPlus = h;
     },
   };
 }

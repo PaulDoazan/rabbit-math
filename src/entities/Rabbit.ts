@@ -66,8 +66,19 @@ const drawMouth = (g: Graphics): void => {
 
 const buildOpenMouth = (): Graphics => {
   const g = new Graphics();
-  g.ellipse(0, 0, 7, 5)
-    .fill(COLORS.outline);
+  g.ellipse(0, 0, 7, 5).fill(COLORS.outline);
+  const toothW = 8;
+  const toothH = 7;
+  const toothTop = -4;
+  const toothHalfW = toothW / 2;
+  const toothArcCy = toothTop + toothH - toothHalfW;
+  g.moveTo(-toothHalfW, toothTop)
+    .lineTo(toothHalfW, toothTop)
+    .lineTo(toothHalfW, toothArcCy)
+    .arc(0, toothArcCy, toothHalfW, 0, Math.PI)
+    .lineTo(-toothHalfW, toothTop)
+    .fill(COLORS.cloud)
+    .stroke({ width: STROKE.thin, color: COLORS.outline });
   g.position.set(0, 4);
   g.scale.set(0);
   return g;
