@@ -63,24 +63,37 @@ const buildSprite = (): Sprite => {
   return s;
 };
 
-const flyParabolic = (sprite: Sprite, start: Vec, params: PieceParams): Promise<void> => {
+interface ArcPath {
+  x0: number; y0: number; endX: number; endY: number; peakY: number; spin: number;
+}
+
+const arcPathFor = (start: Vec, params: PieceParams): ArcPath => {
   const x0 = start.x + params.startOffset.x;
   const y0 = start.y + params.startOffset.y;
-  const endX = x0 + params.dirX * FLIGHT_DISTANCE * params.distanceMul;
-  const endY = CARROT_GROUND_Y - SPRITE_HEIGHT / 2;
-  const peakY = y0 - PEAK_LIFT * params.peakMul;
-  const totalSpin = params.spinSign * params.spinTurns * Math.PI * 2;
+  return {
+    x0,
+    y0,
+    endX: x0 + params.dirX * FLIGHT_DISTANCE * params.distanceMul,
+    endY: CARROT_GROUND_Y - SPRITE_HEIGHT / 2,
+    peakY: y0 - PEAK_LIFT * params.peakMul,
+    spin: params.spinSign * params.spinTurns * Math.PI * 2,
+  };
+};
+
+const stepSprite = (sprite: Sprite, p: ArcPath, t: number): void => {
+  const oneMinus = 1 - t;
+  const x = p.x0 + (p.endX - p.x0) * t;
+  const y = oneMinus * oneMinus * p.y0 + 2 * oneMinus * t * p.peakY + t * t * p.endY;
+  sprite.position.set(x, y);
+  sprite.rotation = p.spin * t;
+};
+
+const flyParabolic = (sprite: Sprite, start: Vec, params: PieceParams): Promise<void> => {
+  const path = arcPathFor(start, params);
   return new Promise((resolve) => {
     new Tween({ t: 0 }, tweenGroup)
       .to({ t: 1 }, FLIGHT_DURATION_MS)
-      .onUpdate((obj) => {
-        const t = obj.t;
-        const oneMinus = 1 - t;
-        const x = x0 + (endX - x0) * t;
-        const y = oneMinus * oneMinus * y0 + 2 * oneMinus * t * peakY + t * t * endY;
-        sprite.position.set(x, y);
-        sprite.rotation = totalSpin * t;
-      })
+      .onUpdate((obj) => stepSprite(sprite, path, obj.t))
       .onComplete(() => resolve())
       .start();
   });

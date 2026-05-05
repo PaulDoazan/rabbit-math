@@ -6,13 +6,13 @@ import {
   createPanelBackground,
   createPanelTitle,
   createCycleRow,
-  createStepperRow,
   createCloseButton,
   createConfirmPrompt,
   RABBITS_OPTIONS,
   sessionImpactingChanged,
   onOff,
 } from "./SettingsPanel";
+import { createStepperRow } from "./SettingsStepperRow";
 
 export interface SettingsSceneDeps {
   initial: Settings;
