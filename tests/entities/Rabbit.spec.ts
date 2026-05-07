@@ -52,11 +52,21 @@ describe("Rabbit playShakeNo", () => {
   });
 });
 
-describe("Rabbit playBitePartialAndFall", () => {
+describe("Rabbit playChew", () => {
+  it("resolves without changing fallen state", async () => {
+    const r = createRabbit({ position: { x: 100, y: 100 } });
+    const p = r.playChew(2);
+    await runTweens(1500);
+    await p;
+    expect(r.isFallen()).toBe(false);
+  });
+});
+
+describe("Rabbit playJumpFromTree", () => {
   it("sets isFallen true and updates position.y", async () => {
     const r = createRabbit({ position: { x: 100, y: 100 } });
-    const p = r.playBitePartialAndFall(330);
-    await runTweens(800);
+    const p = r.playJumpFromTree(330);
+    await runTweens(1500);
     await p;
     expect(r.isFallen()).toBe(true);
     expect(r.position.y).toBe(330);
