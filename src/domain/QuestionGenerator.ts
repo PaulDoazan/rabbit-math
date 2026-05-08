@@ -1,4 +1,4 @@
-import type { Pair } from "./tables";
+import { computeAnswer, type Pair } from "./tables";
 import { generateDistractors, type Difficulty } from "./DifficultyConfig";
 import { mulberry32, pickFrom, shuffle, type Rng } from "./Rng";
 import type { Question } from "./Question";
@@ -26,9 +26,15 @@ const buildQuestion = (
   choicesCount: number,
   rng: Rng,
 ): Question => {
-  const answer = pair.a * pair.b;
+  const answer = computeAnswer(pair);
   const distractors = generateDistractors(answer, difficulty, choicesCount - 1, rng);
-  return { a: pair.a, b: pair.b, answer, choices: shuffle([answer, ...distractors], rng) };
+  return {
+    a: pair.a,
+    b: pair.b,
+    op: pair.op,
+    answer,
+    choices: shuffle([answer, ...distractors], rng),
+  };
 };
 
 export function generateSession(req: SessionRequest): Question[] {

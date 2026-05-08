@@ -3,7 +3,7 @@ import { createMathSign } from "../../src/entities/MathSign";
 import { MATH_SIGN } from "../../src/config/dimensions";
 import type { Question } from "../../src/domain/Question";
 
-const Q: Question = { a: 7, b: 8, answer: 56, choices: [56, 48, 63, 54] };
+const Q: Question = { a: 7, b: 8, op: "mul", answer: 56, choices: [56, 48, 63, 54] };
 
 describe("MathSign default", () => {
   it("default width matches the configured default", () => {

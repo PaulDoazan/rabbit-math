@@ -1,3 +1,5 @@
+export type Op = "mul" | "add" | "sub";
+
 export type TableListId =
   | "table_2"
   | "table_5"
@@ -11,6 +13,7 @@ export type TableListId =
 export interface Pair {
   readonly a: number;
   readonly b: number;
+  readonly op: Op;
 }
 
 export interface TableList {
@@ -22,12 +25,28 @@ export interface TableList {
 const range = (lo: number, hi: number): number[] =>
   Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
 
-const tablePairs = (multipliers: number[]): Pair[] =>
-  multipliers.flatMap((a) => range(1, 10).map((b) => ({ a, b })));
+const tablePairs = (multipliers: number[], op: Op = "mul"): Pair[] =>
+  multipliers.flatMap((a) => range(1, 10).map((b) => ({ a, b, op })));
 
-const squarePairs = (): Pair[] => range(2, 10).map((n) => ({ a: n, b: n }));
+const squarePairs = (): Pair[] =>
+  range(2, 10).map((n) => ({ a: n, b: n, op: "mul" as Op }));
 
-export const allPairs = (): Pair[] => tablePairs(range(2, 10));
+export const allMulPairs = (): Pair[] => tablePairs(range(2, 10), "mul");
+export const allAddPairs = (): Pair[] => tablePairs(range(1, 10), "add");
+export const allSubPairs = (): Pair[] => tablePairs(range(1, 10), "sub");
+export const allPairs = (): Pair[] => allMulPairs();
+
+export const computeAnswer = (p: Pair): number => {
+  if (p.op === "mul") return p.a * p.b;
+  if (p.op === "add") return p.a + p.b;
+  return p.a - p.b;
+};
+
+export const opSymbol = (op: Op): string => {
+  if (op === "mul") return "×";
+  if (op === "add") return "+";
+  return "−";
+};
 
 export const TABLE_LISTS: Readonly<Record<TableListId, TableList>> = {
   table_2: { id: "table_2", label: "Table de 2", pairs: tablePairs([2]) },

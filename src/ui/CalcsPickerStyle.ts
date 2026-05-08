@@ -55,7 +55,52 @@ export const CALCS_PICKER_CSS = `
   padding: 8px 16px 16px;
   -webkit-overflow-scrolling: touch;
 }
+.cp-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0 12px;
+  position: sticky;
+  top: 0;
+  background: #fff8e5;
+  z-index: 1;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.15);
+}
+.cp-tab {
+  flex: 1;
+  background: #fff;
+  border: 2px solid #111;
+  border-radius: 8px;
+  padding: 8px 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  color: #111;
+}
+.cp-tab-active {
+  background: #ffd76a;
+}
 .cp-section { margin-bottom: 14px; }
+.cp-random-row {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 2px solid #111;
+  border-radius: 8px;
+  background: #ffeec2;
+  user-select: none;
+}
+.cp-random-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  margin-right: 12px;
+  accent-color: #ff7a2b;
+}
 .cp-section-header {
   display: flex;
   align-items: center;

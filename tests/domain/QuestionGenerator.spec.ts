@@ -5,7 +5,7 @@ import { allPairs, getTableList } from "../../src/domain/tables";
 describe("generateSession choicesCount", () => {
   it("produces exactly choicesCount choices per question", () => {
     const session = generateSession({
-      pairs: [{ a: 4, b: 7 }],
+      pairs: [{ a: 4, b: 7, op: "mul" }],
       difficulty: "medium",
       count: 3,
       choicesCount: 6,
