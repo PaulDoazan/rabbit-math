@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { MATH_SIGN } from "../config/dimensions";
 import { COLORS, STROKE } from "../config/theme";
 import type { Question } from "../domain/Question";
+import { opSymbol } from "../domain/tables";
 import { tweenObject } from "./animations/Tween";
 
 export interface MathSign {
@@ -46,7 +47,7 @@ const applyWidth = (state: State, w: number) => {
 const buildApi = (state: State): MathSign => ({
   view: state.view,
   setQuestion: (q) => {
-    state.t.text = `${q.a} × ${q.b} = ?`;
+    state.t.text = `${q.a} ${opSymbol(q.op)} ${q.b} = ?`;
   },
   setEndOfSessionMessage: (score, total) => {
     state.t.text = `${score} / ${total} bonnes réponses`;

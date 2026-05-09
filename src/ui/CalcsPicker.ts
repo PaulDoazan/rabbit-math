@@ -1,4 +1,4 @@
-import type { Pair } from "../domain/tables";
+import type { Op, Pair } from "../domain/tables";
 import { buildPicker, type PickerHandles } from "./CalcsPickerDom";
 
 export interface CalcsPickerOptions {
@@ -7,12 +7,18 @@ export interface CalcsPickerOptions {
 
 const NO_SELECTION_MSG = "Sélectionne au moins un calcul.";
 
+const opOf = (raw: string | undefined): Op => {
+  if (raw === "add" || raw === "sub") return raw;
+  return "mul";
+};
+
 const readSelection = (boxes: readonly HTMLInputElement[]): Pair[] =>
   boxes
     .filter((cb) => cb.checked)
     .map((cb) => ({
       a: Number(cb.dataset.a),
       b: Number(cb.dataset.b),
+      op: opOf(cb.dataset.op),
     }));
 
 const updateCloseAvailability = (h: PickerHandles): void => {

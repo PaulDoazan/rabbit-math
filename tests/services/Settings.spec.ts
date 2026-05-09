@@ -13,9 +13,9 @@ describe("Settings defaults & round-trip", () => {
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
   });
 
-  it("default selection is the table of 4 (10 pairs)", () => {
+  it("default selection is 10 random multiplication pairs", () => {
     expect(DEFAULT_SETTINGS.selectedPairs).toHaveLength(10);
-    expect(DEFAULT_SETTINGS.selectedPairs.every((p) => p.a === 4)).toBe(true);
+    expect(DEFAULT_SETTINGS.selectedPairs.every((p) => p.op === "mul")).toBe(true);
   });
 
   it("default rabbitsCount is 4", () => {
@@ -68,9 +68,10 @@ describe("Settings validation", () => {
     expect(validateSettings({ ...DEFAULT_SETTINGS, rabbitsCount: 5.7 as 5 }).rabbitsCount).toBe(5);
   });
 
-  it("validateSettings falls back to the default selection when empty", () => {
+  it("validateSettings falls back to 10 random multiplication pairs when empty", () => {
     const bad = { ...DEFAULT_SETTINGS, selectedPairs: [] };
     const fixed = validateSettings(bad);
-    expect(fixed.selectedPairs).toEqual(DEFAULT_SETTINGS.selectedPairs);
+    expect(fixed.selectedPairs).toHaveLength(10);
+    expect(fixed.selectedPairs.every((p) => p.op === "mul")).toBe(true);
   });
 });

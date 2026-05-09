@@ -60,6 +60,7 @@ const preloadAssets = (): Promise<unknown> => {
     `${base}assets/sun.png`,
     `${base}assets/cog.png`,
     `${base}assets/carot.png`,
+    `${base}assets/weapon.png`,
     ...TREE_ASSET_URLS,
   ]);
 };

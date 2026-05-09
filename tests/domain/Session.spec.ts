@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { createSession } from "../../src/domain/Session";
 import type { Question } from "../../src/domain/Question";
 
-const Q1: Question = { a: 7, b: 8, answer: 56, choices: [48, 56, 63, 54] };
-const Q2: Question = { a: 6, b: 4, answer: 24, choices: [24, 28, 18, 36] };
+const Q1: Question = { a: 7, b: 8, op: "mul", answer: 56, choices: [48, 56, 63, 54] };
+const Q2: Question = { a: 6, b: 4, op: "mul", answer: 24, choices: [24, 28, 18, 36] };
 
 describe("Session initial state", () => {
   it("starts at index 0, score 0, full carrots, phase=aiming", () => {

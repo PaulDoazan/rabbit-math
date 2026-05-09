@@ -1,6 +1,13 @@
 import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { COLORS, STROKE } from "../config/theme";
 import { tweenObject } from "./animations/Tween";
+import {
+  animateChew,
+  animateHopInPlace,
+  animateJumpFromTree,
+  animateRunAwayRight,
+  animateShakeNo,
+} from "./animations/RabbitAnims";
 
 export interface Aabb {
   minX: number;
@@ -25,7 +32,8 @@ export interface Rabbit {
   position: Vec;
   setAimed(aimed: boolean): void;
   playShakeNo(): Promise<void>;
-  playBitePartialAndFall(landingY: number): Promise<void>;
+  playChew(times: number): Promise<void>;
+  playJumpFromTree(landingY: number): Promise<void>;
   playHopInPlace(): Promise<void>;
   playRunAwayRight(offscreenX: number): Promise<void>;
 }
@@ -79,8 +87,9 @@ const buildOpenMouth = (): Graphics => {
     .lineTo(-toothHalfW, toothTop)
     .fill(COLORS.cloud)
     .stroke({ width: STROKE.thin, color: COLORS.outline });
-  g.position.set(0, 4);
-  g.scale.set(0);
+  g.pivot.set(0, -5);
+  g.position.set(0, -1);
+  g.scale.set(1, 0);
   return g;
 };
 
@@ -151,58 +160,34 @@ const aabbAt = (pos: Vec): Aabb => ({
   maxY: pos.y + 30,
 });
 
-const animateShakeNo = async (view: Container, originalX: number): Promise<void> => {
-  for (let i = 0; i < 4; i++) {
-    await tweenObject(view.position, { x: originalX + 6 }, 60);
-    await tweenObject(view.position, { x: originalX - 6 }, 60);
-  }
-  view.position.x = originalX;
-};
-
-const animateBiteAndFall = async (state: State, landingY: number): Promise<void> => {
-  state.fallen = true;
-  state.openMouth.scale.set(0);
-  await tweenObject(state.view.scale, { x: 1.05, y: 0.95 }, 80);
-  await tweenObject(state.view.scale, { x: 1, y: 1 }, 80);
-  state.position.y = landingY;
-  await tweenObject(state.view.position, { y: landingY }, 350);
-};
-
-const animateHopInPlace = async (state: State): Promise<void> => {
-  const baseY = state.position.y;
-  for (let i = 0; i < 3; i++) {
-    await tweenObject(state.view.position, { y: baseY - 22 }, 180);
-    await tweenObject(state.view.position, { y: baseY }, 160);
-  }
-};
-
-const animateRunAwayRight = async (state: State, offscreenX: number): Promise<void> => {
-  state.position.x = offscreenX;
-  await tweenObject(state.view.position, { x: offscreenX }, 1000);
-};
-
 const setAimed = (state: State, aimed: boolean): void => {
   if (state.aimed === aimed || state.fallen) return;
   state.aimed = aimed;
-  void tweenObject(state.openMouth.scale, { x: aimed ? 1 : 0, y: aimed ? 1 : 0 }, MOUTH_TWEEN_MS);
+  void tweenObject(state.openMouth.scale, { y: aimed ? 1 : 0 }, MOUTH_TWEEN_MS);
+};
+
+const setNumber = (state: State, n: number): void => {
+  state.number = n;
+  state.text.text = String(n);
+};
+
+const playJump = (state: State, y: number): Promise<void> => {
+  state.fallen = true;
+  return animateJumpFromTree(state, y);
 };
 
 const buildApi = (state: State): Rabbit => ({
   view: state.view,
   position: state.position,
-  setNumber: (n) => {
-    state.number = n;
-    state.text.text = String(n);
-  },
+  setNumber: (n) => setNumber(state, n),
   getNumber: () => state.number,
   isFallen: () => state.fallen,
-  markFallen: () => {
-    state.fallen = true;
-  },
+  markFallen: () => { state.fallen = true; },
   getCollisionAabb: () => aabbAt(state.position),
   setAimed: (aimed) => setAimed(state, aimed),
   playShakeNo: () => animateShakeNo(state.view, state.position.x),
-  playBitePartialAndFall: (y) => animateBiteAndFall(state, y),
+  playChew: (times) => animateChew(state, times),
+  playJumpFromTree: (y) => playJump(state, y),
   playHopInPlace: () => animateHopInPlace(state),
   playRunAwayRight: (x) => animateRunAwayRight(state, x),
 });

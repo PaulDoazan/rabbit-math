@@ -10,9 +10,11 @@ export interface Vec {
 
 const CARROT_URL = `${import.meta.env.BASE_URL}assets/carot.png`;
 const SOURCE_WIDTH = 248;
-const HALF_HEIGHT = 315;
-const SPRITE_WIDTH = 12;
-const SPRITE_HEIGHT = (SPRITE_WIDTH * HALF_HEIGHT) / SOURCE_WIDTH;
+const SOURCE_HEIGHT = 631;
+const HALF_WIDTH = SOURCE_WIDTH / 2;
+const HALF_HEIGHT = SOURCE_HEIGHT / 2;
+const SPRITE_WIDTH = 8;
+const SPRITE_HEIGHT = (SPRITE_WIDTH * HALF_HEIGHT) / HALF_WIDTH;
 
 const FLIGHT_DURATION_MS = 600;
 const FLIGHT_DISTANCE = 110;
@@ -21,6 +23,8 @@ const REST_BEFORE_FADE_MS = 1500;
 const FADE_DURATION_MS = 400;
 const SPIN_TURNS = 2;
 
+type Side = "left" | "right";
+
 interface PieceParams {
   dirX: number;
   startOffset: Vec;
@@ -28,6 +32,7 @@ interface PieceParams {
   peakMul: number;
   spinTurns: number;
   spinSign: 1 | -1;
+  side: Side;
 }
 
 const PIECES: ReadonlyArray<Omit<PieceParams, "dirX">> = [
@@ -37,6 +42,7 @@ const PIECES: ReadonlyArray<Omit<PieceParams, "dirX">> = [
     peakMul: 1.18,
     spinTurns: SPIN_TURNS,
     spinSign: 1,
+    side: "left",
   },
   {
     startOffset: { x: 2, y: 1 },
@@ -44,19 +50,21 @@ const PIECES: ReadonlyArray<Omit<PieceParams, "dirX">> = [
     peakMul: 0.85,
     spinTurns: SPIN_TURNS - 0.5,
     spinSign: -1,
+    side: "right",
   },
 ];
 
-const buildHalfTexture = (): Texture => {
+const buildQuarterTexture = (side: Side): Texture => {
   const base = Texture.from(CARROT_URL);
+  const x = side === "left" ? 0 : HALF_WIDTH;
   return new Texture({
     source: base.source,
-    frame: new Rectangle(0, 0, SOURCE_WIDTH, HALF_HEIGHT),
+    frame: new Rectangle(x, 0, HALF_WIDTH, HALF_HEIGHT),
   });
 };
 
-const buildSprite = (): Sprite => {
-  const s = new Sprite(buildHalfTexture());
+const buildSprite = (side: Side): Sprite => {
+  const s = new Sprite(buildQuarterTexture(side));
   s.anchor.set(0.5);
   s.width = SPRITE_WIDTH;
   s.height = SPRITE_HEIGHT;
@@ -105,7 +113,7 @@ const animatePiece = async (
   params: PieceParams,
   delay: (ms: number) => Promise<void>,
 ): Promise<void> => {
-  const sprite = buildSprite();
+  const sprite = buildSprite(params.side);
   sprite.position.set(mouth.x + params.startOffset.x, mouth.y + params.startOffset.y);
   parent.addChild(sprite);
   await flyParabolic(sprite, mouth, params);

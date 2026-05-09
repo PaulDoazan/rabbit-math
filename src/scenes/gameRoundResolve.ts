@@ -33,16 +33,18 @@ const findHit = (rabbits: readonly Rabbit[], p: Vec): number => {
 const isLost = (p: Vec, v: Vec): boolean =>
   p.x < 0 || p.x > DESIGN_WIDTH || (p.y >= CARROT_GROUND_Y && v.y > 0);
 
-const onCorrect = (ctx: ResolveCtx, idx: number): void => {
+const onCorrect = async (ctx: ResolveCtx, idx: number): Promise<void> => {
   const r = ctx.rabbits[idx]!;
-  ctx.session.startResolving(); ctx.session.recordHit();
+  ctx.session.startResolving();
+  ctx.session.recordHit();
   const carrot = ctx.carrot();
   const impactVel = { x: carrot.body.velocity.x, y: carrot.body.velocity.y };
   const mouth = { x: r.position.x, y: r.position.y + 4 };
-  void spawnHalfCarrotEffect(ctx.view, mouth, impactVel, ctx.delay);
-  void r.playBitePartialAndFall(CARROT_GROUND_Y - 30);
-  r.markFallen();
   ctx.removeCarrot();
+  r.markFallen();
+  await r.playChew(2);
+  void spawnHalfCarrotEffect(ctx.view, mouth, impactVel, ctx.delay);
+  await r.playJumpFromTree(CARROT_GROUND_Y - 30);
   ctx.advance();
 };
 
@@ -62,7 +64,8 @@ const onMiss = (ctx: ResolveCtx, p: Vec): void => {
 const resolveRabbit = (ctx: ResolveCtx, idx: number): void => {
   ctx.setResolving(true);
   const ok = ctx.rabbits[idx]!.getNumber() === ctx.session.currentQuestion().answer;
-  (ok ? onCorrect : onWrong)(ctx, idx);
+  if (ok) void onCorrect(ctx, idx);
+  else onWrong(ctx, idx);
 };
 
 export const processCarrotImpact = (ctx: ResolveCtx): void => {

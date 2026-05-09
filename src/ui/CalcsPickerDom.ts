@@ -1,5 +1,14 @@
-import type { Pair } from "../domain/tables";
+import type { Op, Pair } from "../domain/tables";
 import { CALCS_PICKER_CSS } from "./CalcsPickerStyle";
+import {
+  OP_LABEL,
+  OP_SYMBOL,
+  type OpPanelHandles,
+  buildOpPanel,
+  initialKeys,
+  pairKey,
+} from "./CalcsPickerSections";
+import { wireExclusivity } from "./CalcsPickerExclusivity";
 
 export interface PickerHandles {
   root: HTMLDivElement;
@@ -10,13 +19,9 @@ export interface PickerHandles {
   checkboxes: HTMLInputElement[];
 }
 
-const TABLES = [2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-const MULTIPLIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export { pairKey };
 
-export const pairKey = (a: number, b: number): string => `${a}x${b}`;
-
-const initialKeys = (initial: readonly Pair[]): Set<string> =>
-  new Set(initial.map((p) => pairKey(p.a, p.b)));
+const TAB_OPS: readonly Op[] = ["mul", "add", "sub"];
 
 const buildStyle = (): HTMLStyleElement => {
   const style = document.createElement("style");
@@ -38,91 +43,33 @@ const buildHeader = (): { wrap: HTMLDivElement; close: HTMLButtonElement } => {
   return { wrap, close };
 };
 
-const buildRow = (
-  a: number,
-  b: number,
-  checked: boolean,
-): { row: HTMLLabelElement; cb: HTMLInputElement } => {
-  const row = document.createElement("label");
-  row.className = "cp-row";
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.checked = checked;
-  cb.dataset.a = String(a);
-  cb.dataset.b = String(b);
-  const text = document.createElement("span");
-  text.textContent = `${a} × ${b} = ${a * b}`;
-  row.append(cb, text);
-  return { row, cb };
+const buildTab = (op: Op, active: boolean): HTMLButtonElement => {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = active ? "cp-tab cp-tab-active" : "cp-tab";
+  btn.dataset.op = op;
+  btn.textContent = `${OP_SYMBOL[op]} ${OP_LABEL[op]}`;
+  return btn;
 };
 
-const buildSectionHeader = (
-  a: number,
-): { header: HTMLLabelElement; cb: HTMLInputElement } => {
-  const header = document.createElement("label");
-  header.className = "cp-section-header";
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  const text = document.createElement("span");
-  text.textContent = `Table de ${a}`;
-  header.append(cb, text);
-  return { header, cb };
-};
-
-const buildSectionRows = (
-  a: number,
-  section: HTMLDivElement,
-  has: Set<string>,
-  out: HTMLInputElement[],
-): HTMLInputElement[] => {
-  const rows: HTMLInputElement[] = [];
-  for (const b of MULTIPLIERS) {
-    const { row, cb } = buildRow(a, b, has.has(pairKey(a, b)));
-    section.appendChild(row);
-    rows.push(cb);
-    out.push(cb);
-  }
-  return rows;
-};
-
-const buildSection = (
-  a: number,
-  has: Set<string>,
-  checkboxes: HTMLInputElement[],
-): HTMLDivElement => {
-  const section = document.createElement("div");
-  section.className = "cp-section";
-  const { header, cb: headerCb } = buildSectionHeader(a);
-  section.appendChild(header);
-  const rows = buildSectionRows(a, section, has, checkboxes);
-  wireSectionToggle(headerCb, rows);
-  return section;
-};
-
-const syncHeaderFromRows = (
-  headerCb: HTMLInputElement,
-  rows: readonly HTMLInputElement[],
+const wireTabs = (
+  tabs: readonly HTMLButtonElement[],
+  panels: readonly HTMLDivElement[],
 ): void => {
-  const checkedCount = rows.filter((r) => r.checked).length;
-  headerCb.checked = checkedCount === rows.length;
-  headerCb.indeterminate = checkedCount > 0 && checkedCount < rows.length;
-};
-
-const wireSectionToggle = (
-  headerCb: HTMLInputElement,
-  rows: readonly HTMLInputElement[],
-): void => {
-  syncHeaderFromRows(headerCb, rows);
-  headerCb.addEventListener("change", () => {
-    const target = headerCb.checked;
-    for (const r of rows) {
-      r.checked = target;
-      r.dispatchEvent(new Event("change", { bubbles: true }));
-    }
+  tabs.forEach((tab, idx) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("cp-tab-active"));
+      tab.classList.add("cp-tab-active");
+      panels.forEach((p, i) => { p.style.display = i === idx ? "" : "none"; });
+    });
   });
-  for (const r of rows) {
-    r.addEventListener("change", () => syncHeaderFromRows(headerCb, rows));
-  }
+};
+
+const buildTabsRow = (tabs: readonly HTMLButtonElement[]): HTMLDivElement => {
+  const row = document.createElement("div");
+  row.className = "cp-tabs";
+  tabs.forEach((t) => row.appendChild(t));
+  return row;
 };
 
 const buildBody = (
@@ -132,7 +79,12 @@ const buildBody = (
   const body = document.createElement("div");
   body.className = "cp-body";
   const has = initialKeys(initial);
-  for (const a of TABLES) body.appendChild(buildSection(a, has, checkboxes));
+  const tabs = TAB_OPS.map((op, i) => buildTab(op, i === 0));
+  body.appendChild(buildTabsRow(tabs));
+  const handles: OpPanelHandles[] = TAB_OPS.map((op) => buildOpPanel(op, has, checkboxes));
+  handles.forEach((h, i) => { if (i !== 0) h.panel.style.display = "none"; body.appendChild(h.panel); });
+  wireTabs(tabs, handles.map((h) => h.panel));
+  wireExclusivity(handles);
   return body;
 };
 

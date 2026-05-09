@@ -1,7 +1,6 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import { SLINGSHOT_ANCHOR, GROUND_Y } from "../config/dimensions";
 import { SLINGSHOT_MAX_PULL, SLINGSHOT_POWER } from "../config/physics";
-import { COLORS, STROKE } from "../config/theme";
 
 export interface Vec {
   x: number;
@@ -19,22 +18,34 @@ export interface Slingshot {
   clearElastic(): void;
 }
 
-const PRONG_LEFT = { x: SLINGSHOT_ANCHOR.x - 22, y: SLINGSHOT_ANCHOR.y - 5 };
-const PRONG_RIGHT = { x: SLINGSHOT_ANCHOR.x + 22, y: SLINGSHOT_ANCHOR.y - 5 };
+const WEAPON_URL = `${import.meta.env.BASE_URL}assets/weapon.png`;
+const WEAPON_SOURCE_RATIO = 1456 / 720;
+const SPRITE_SCALE = 1.2;
+const SPRITE_BASE_WIDTH = 50;
+const SPRITE_WIDTH = SPRITE_BASE_WIDTH * SPRITE_SCALE;
+const SPRITE_HEIGHT = SPRITE_WIDTH * WEAPON_SOURCE_RATIO;
+const SPRITE_BASE_HEIGHT = SPRITE_BASE_WIDTH * WEAPON_SOURCE_RATIO;
+const SPRITE_ANCHOR_Y = 0.21;
+const ELASTIC_RAISE = 50;
+const SLINGSHOT_EXTRA_RAISE = 15;
+const PRONG_TIP_X_INSET = 0.085;
+const PRONG_TIP_Y_INSET = 0.045;
+
+const PRONG_TIP_Y =
+  GROUND_Y - ELASTIC_RAISE + (PRONG_TIP_Y_INSET - SPRITE_ANCHOR_Y) * SPRITE_BASE_HEIGHT;
+const PRONG_TIP_DX = SPRITE_BASE_WIDTH * (0.5 - PRONG_TIP_X_INSET);
+
+const PRONG_LEFT = { x: SLINGSHOT_ANCHOR.x - PRONG_TIP_DX, y: PRONG_TIP_Y };
+const PRONG_RIGHT = { x: SLINGSHOT_ANCHOR.x + PRONG_TIP_DX, y: PRONG_TIP_Y };
 const ELASTIC_COLOR = 0x222222;
 
-const drawFrame = (g: Graphics): void => {
-  const ax = SLINGSHOT_ANCHOR.x;
-  const ay = SLINGSHOT_ANCHOR.y;
-  g.moveTo(ax - 6, GROUND_Y)
-    .lineTo(ax - 6, ay)
-    .moveTo(ax + 6, GROUND_Y)
-    .lineTo(ax + 6, ay)
-    .stroke({ width: 10, color: COLORS.trunk, cap: "round" });
-  g.moveTo(ax - 22, ay - 5)
-    .quadraticCurveTo(ax - 6, ay - 24, ax, ay - 10)
-    .quadraticCurveTo(ax + 6, ay - 24, ax + 22, ay - 5)
-    .stroke({ width: STROKE.normal, color: COLORS.outline });
+const buildFrame = (): Sprite => {
+  const sprite = new Sprite(Texture.from(WEAPON_URL));
+  sprite.anchor.set(0.5, SPRITE_ANCHOR_Y);
+  sprite.width = SPRITE_WIDTH;
+  sprite.height = SPRITE_HEIGHT;
+  sprite.position.set(SLINGSHOT_ANCHOR.x, GROUND_Y - ELASTIC_RAISE - SLINGSHOT_EXTRA_RAISE);
+  return sprite;
 };
 
 const drawElastic = (g: Graphics, carrot: Vec): void => {
@@ -81,14 +92,14 @@ const buildApi = (state: State): Slingshot => ({
   releaseVelocity: () => releaseVelocityOf(state),
   reset: () => { state.pos = { ...SLINGSHOT_ANCHOR }; },
   drawElasticTo: (carrot) => drawElastic(state.elastic, carrot),
-  clearElastic: () => state.elastic.clear(),
+  clearElastic: () => drawElastic(state.elastic, SLINGSHOT_ANCHOR),
 });
 
 export function createSlingshot(): Slingshot {
   const view = new Container();
-  const frame = new Graphics();
-  drawFrame(frame);
+  const frame = buildFrame();
   const elastic = new Graphics();
+  drawElastic(elastic, SLINGSHOT_ANCHOR);
   view.addChild(frame, elastic);
   return buildApi({ view, pos: { ...SLINGSHOT_ANCHOR }, elastic });
 }

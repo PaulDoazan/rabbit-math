@@ -9,7 +9,7 @@ export const COLORS = {
   signFill: 0xfff8e5,
   outline: 0x111111,
   hudFill: 0xffffff,
-  cogBody: 0xc8c8c8,
+  cogBody: 0xc2c8cd,
 } as const;
 
 export const STROKE = { thin: 1.5, normal: 2.0, thick: 2.5 } as const;

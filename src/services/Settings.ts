@@ -1,10 +1,19 @@
 import { readJson, writeJson } from "./Storage";
-import type { Pair } from "../domain/tables";
+import { allMulPairs, type Op, type Pair } from "../domain/tables";
 
 export type RabbitsCount = 4 | 5 | 6 | 7 | 8;
 
-const tableOf4 = (): Pair[] =>
-  Array.from({ length: 10 }, (_, i) => ({ a: 4, b: i + 1 }));
+const DEFAULT_RANDOM_COUNT = 10;
+
+const random10MulPairs = (): Pair[] => {
+  const all = allMulPairs();
+  const indices = Array.from({ length: all.length }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j]!, indices[i]!];
+  }
+  return indices.slice(0, DEFAULT_RANDOM_COUNT).map((i) => all[i]!);
+};
 
 export interface Settings {
   selectedPairs: Pair[];
@@ -15,16 +24,23 @@ export interface Settings {
 export const SETTINGS_KEY = "rabbit-math.settings";
 
 export const DEFAULT_SETTINGS: Settings = {
-  selectedPairs: tableOf4(),
+  selectedPairs: random10MulPairs(),
   rabbitsCount: 4,
   tapMode: false,
 };
 
+const isOp = (v: unknown): v is Op => v === "mul" || v === "add" || v === "sub";
+
 const isPair = (v: unknown): v is Pair => {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
-  return typeof o.a === "number" && typeof o.b === "number";
+  if (typeof o.a !== "number" || typeof o.b !== "number") return false;
+  if (o.op === undefined) return true;
+  return isOp(o.op);
 };
+
+const normalizePair = (p: Pair): Pair =>
+  isOp((p as { op?: unknown }).op) ? p : { a: p.a, b: p.b, op: "mul" };
 
 const isPairArray = (v: unknown): v is Pair[] =>
   Array.isArray(v) && v.every(isPair);
@@ -50,10 +66,11 @@ const clampRabbits = (n: number): RabbitsCount => {
 };
 
 export function validateSettings(s: Settings): Settings {
+  const pairs = s.selectedPairs.length >= 1 ? s.selectedPairs.map(normalizePair) : random10MulPairs();
   return {
     ...s,
     rabbitsCount: clampRabbits(s.rabbitsCount),
-    selectedPairs: s.selectedPairs.length >= 1 ? s.selectedPairs : tableOf4(),
+    selectedPairs: pairs,
   };
 }
 

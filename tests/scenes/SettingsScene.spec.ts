@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { createSettingsScene } from "../../src/scenes/SettingsScene";
 import { cycle, sessionImpactingChanged } from "../../src/scenes/SettingsPanel";
 import { DEFAULT_SETTINGS } from "../../src/services/Settings";
+import type { Pair } from "../../src/domain/tables";
 
 const stubDeps = {
   onOpenCalcsPicker: async () => DEFAULT_SETTINGS.selectedPairs,
@@ -33,7 +34,7 @@ describe("SettingsScene setSelectedPairs emits onChange", () => {
   it("emits onChange with the new pairs", () => {
     const onChange = vi.fn();
     const scene = makeScene({ onChange });
-    const pairs = [{ a: 2, b: 3 }, { a: 5, b: 6 }];
+    const pairs: Pair[] = [{ a: 2, b: 3, op: "mul" }, { a: 5, b: 6, op: "mul" }];
     scene.setSelectedPairs(pairs);
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ selectedPairs: pairs }),
