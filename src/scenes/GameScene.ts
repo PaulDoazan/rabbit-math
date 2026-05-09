@@ -113,6 +113,7 @@ const wireFlow = (deps: GameSceneDeps, parts: Parts): RoundFlow =>
     session: parts.session,
     perches: parts.perches,
     delay: deps.delay ?? defaultDelay,
+    tapMode: deps.settings.tapMode,
     onSessionEnd: () => deps.onSessionRestart(),
   });
 

@@ -86,20 +86,16 @@ describe("cycle", () => {
 });
 
 describe("sessionImpactingChanged true cases", () => {
-  it("returns true when selectedPairs or rabbitsCount changes", () => {
+  it("returns true when selectedPairs, rabbitsCount, or tapMode changes", () => {
     const a = DEFAULT_SETTINGS;
     expect(sessionImpactingChanged(a, { ...a, rabbitsCount: 6 })).toBe(true);
     const fewer = a.selectedPairs.slice(0, 5);
     expect(sessionImpactingChanged(a, { ...a, selectedPairs: fewer })).toBe(true);
+    expect(sessionImpactingChanged(a, { ...a, tapMode: !a.tapMode })).toBe(true);
   });
 });
 
 describe("sessionImpactingChanged false cases", () => {
-  it("returns false when only tapMode changes", () => {
-    const a = DEFAULT_SETTINGS;
-    expect(sessionImpactingChanged(a, { ...a, tapMode: !a.tapMode })).toBe(false);
-  });
-
   it("returns false when selectedPairs has same content in different order", () => {
     const a = DEFAULT_SETTINGS;
     const reversed = [...a.selectedPairs].reverse();
