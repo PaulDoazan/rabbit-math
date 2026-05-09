@@ -41,7 +41,6 @@ const drawCloud = (g: Graphics, cx: number, cy: number, scale: number): void => 
 
 const drawClouds = (g: Graphics): void => {
   drawCloud(g, 180, 75, 1.0);
-  drawCloud(g, 480, 55, 0.85);
 };
 
 const drawHills = (g: Graphics): void => {
