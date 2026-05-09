@@ -20,14 +20,23 @@ export interface ResolveCtx {
   continueOrEnd: () => void;
   setResolving: (r: boolean) => void;
   bounceCarrotOff: (rabbitPos: Vec) => void;
+  tapTargetIdx: () => number | null;
 }
 
 const aabbsOf = (rs: readonly Rabbit[]) =>
   rs.map((r) => r.isFallen() ? { minX: 0, maxX: 0, minY: 0, maxY: 0 } : r.getCollisionAabb());
 
-const findHit = (rabbits: readonly Rabbit[], p: Vec): number => {
-  const c = classifyHit(p, aabbsOf(rabbits));
-  return c.kind === "rabbit" ? c.index : -1;
+const aabbContains = (a: { minX: number; maxX: number; minY: number; maxY: number }, p: Vec): boolean =>
+  p.x >= a.minX && p.x <= a.maxX && p.y >= a.minY && p.y <= a.maxY;
+
+const findHit = (rabbits: readonly Rabbit[], p: Vec, restrictTo: number | null): number => {
+  if (restrictTo === null) {
+    const c = classifyHit(p, aabbsOf(rabbits));
+    return c.kind === "rabbit" ? c.index : -1;
+  }
+  const r = rabbits[restrictTo];
+  if (!r || r.isFallen()) return -1;
+  return aabbContains(r.getCollisionAabb(), p) ? restrictTo : -1;
 };
 
 const isLost = (p: Vec, v: Vec): boolean =>
@@ -71,7 +80,7 @@ const resolveRabbit = (ctx: ResolveCtx, idx: number): void => {
 export const processCarrotImpact = (ctx: ResolveCtx): void => {
   const b = ctx.carrot().body;
   const p = { x: b.position.x, y: b.position.y };
-  const idx = findHit(ctx.rabbits, p);
+  const idx = findHit(ctx.rabbits, p, ctx.tapTargetIdx());
   if (idx >= 0) return resolveRabbit(ctx, idx);
   if (isLost(p, b.velocity)) { ctx.setResolving(true); onMiss(ctx, p); }
 };

@@ -23,7 +23,8 @@ export const arrayEqualPairs = (
 
 export const sessionImpactingChanged = (a: Settings, b: Settings): boolean =>
   !arrayEqualPairs(a.selectedPairs, b.selectedPairs) ||
-  a.rabbitsCount !== b.rabbitsCount;
+  a.rabbitsCount !== b.rabbitsCount ||
+  a.tapMode !== b.tapMode;
 
 export const onOff = (b: boolean): string => (b ? "ON" : "OFF");
 

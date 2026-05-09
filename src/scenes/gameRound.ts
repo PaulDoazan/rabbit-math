@@ -1,5 +1,5 @@
 import Matter from "matter-js";
-import { Container, Rectangle, type FederatedPointerEvent } from "pixi.js";
+import { Container, Rectangle } from "pixi.js";
 import { CARROT_GROUND_Y, DESIGN_HEIGHT, DESIGN_WIDTH } from "../config/dimensions";
 import { createCarrot, type Carrot } from "../entities/Carrot";
 import type { Rabbit } from "../entities/Rabbit";
@@ -10,6 +10,8 @@ import { createSlingshotInput, type SlingshotInput } from "../systems/SlingshotI
 import { createTrajectoryPreview, type TrajectoryPreview } from "../systems/TrajectoryPreview";
 import { makeOnAim, makeOnRelease } from "./gameRoundAim";
 import { processCarrotImpact, type ResolveCtx } from "./gameRoundResolve";
+import { wireTapEvents } from "./gameRoundTap";
+import { wireSlingshotEvents } from "./gameRoundSlingshotInput";
 import type { Session } from "../domain/Session";
 import type { PhysicsWorld } from "../core/PhysicsWorld";
 import type { Perch } from "../config/dimensions";
@@ -30,6 +32,7 @@ export interface RoundFlowDeps {
   session: Session;
   perches: ReadonlyArray<Perch>;
   delay: (ms: number) => Promise<void>;
+  tapMode: boolean;
   onSessionEnd(): void;
 }
 
@@ -48,10 +51,10 @@ interface Live {
   bouncing: boolean;
   destroyed: boolean;
   owned: Set<Matter.Body>;
+  tapTargetIdx: number | null;
 }
 
 const ROUND_ADVANCE_MS = 1200;
-const HIT_RADIUS_SQ = 30 * 30;
 
 const setupView = (v: Container): void => {
   v.eventMode = "static";
@@ -68,12 +71,8 @@ const loadCarrot = (d: RoundFlowDeps, l: Live): Carrot => {
   d.physics.addBody(c.body);
   l.owned.add(c.body);
   d.view.addChild(c.view);
+  l.tapTargetIdx = null;
   return c;
-};
-
-const within = (p: Vec, t: Vec): boolean => {
-  const dx = p.x - t.x; const dy = p.y - t.y;
-  return dx * dx + dy * dy <= HIT_RADIUS_SQ;
 };
 
 const refresh = (d: RoundFlowDeps): void => {
@@ -155,6 +154,7 @@ const resolveCtx = (d: RoundFlowDeps, l: Live): ResolveCtx => ({
   continueOrEnd: () => continueOrEnd(d, l),
   setResolving: (r) => { l.resolving = r; },
   bounceCarrotOff: (rabbitPos) => bounceCarrotOff(l, rabbitPos),
+  tapTargetIdx: () => l.tapTargetIdx,
 });
 
 const tickFlow = (d: RoundFlowDeps, l: Live) => (): void => {
@@ -177,26 +177,24 @@ const aimContext = (d: RoundFlowDeps, l: Live) => ({
   onLaunch: (v: Vec) => l.carrot.launch(v),
 });
 
-const downCb = (d: RoundFlowDeps, l: Live) => (e: FederatedPointerEvent): void => {
-  if (d.session.snapshot().phase !== "aiming") return;
-  const p = { x: e.global.x, y: e.global.y };
-  if (!within(p, d.slingshot.carrotPosition())) return;
-  l.input.handlePointerDown(p);
-};
-
-const wireEvents = (d: RoundFlowDeps, l: Live): (() => void) => {
-  const down = downCb(d, l);
-  const move = (e: FederatedPointerEvent): void =>
-    l.input.handlePointerMove({ x: e.global.x, y: e.global.y });
-  const up = (): void => l.input.handlePointerUp();
-  d.view.on("pointerdown", down).on("pointermove", move).on("pointerup", up).on("pointerupoutside", up);
-  return () => d.view.off("pointerdown", down).off("pointermove", move).off("pointerup", up).off("pointerupoutside", up);
-};
+const wireEvents = (d: RoundFlowDeps, l: Live): (() => void) =>
+  d.tapMode
+    ? wireTapEvents({
+        view: d.view, rabbits: d.rabbits, slingshot: d.slingshot, session: d.session,
+        carrot: () => l.carrot,
+        isResolving: () => l.resolving,
+        isBouncing: () => l.bouncing,
+        setTapTarget: (idx) => { l.tapTargetIdx = idx; },
+      })
+    : wireSlingshotEvents({
+        view: d.view, slingshot: d.slingshot, session: d.session, input: l.input,
+        carrot: () => l.carrot,
+      });
 
 const buildLive = (d: RoundFlowDeps): Live => {
   const preview = createTrajectoryPreview();
   d.view.addChild(preview.view);
-  const live = { carrot: undefined, preview, input: undefined, resolving: false, bouncing: false, destroyed: false, owned: new Set() } as unknown as Live;
+  const live = { carrot: undefined, preview, input: undefined, resolving: false, bouncing: false, destroyed: false, owned: new Set(), tapTargetIdx: null } as unknown as Live;
   live.carrot = loadCarrot(d, live);
   const ctx = aimContext(d, live);
   live.input = createSlingshotInput({ slingshot: d.slingshot, onAim: makeOnAim(ctx), onRelease: makeOnRelease(ctx) });
