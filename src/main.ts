@@ -73,6 +73,10 @@ const installTicker = (physics: Physics, sm: SM): void => {
   });
 };
 
+const removeLoader = (): void => {
+  document.getElementById("loader")?.remove();
+};
+
 async function main(): Promise<void> {
   const root = document.getElementById("game-root");
   if (!root) throw new Error("Missing #game-root");
@@ -86,6 +90,7 @@ async function main(): Promise<void> {
   setupAudio().startMusic();
   startGame(sm, physics, settingsRef);
   installTicker(physics, sm);
+  removeLoader();
 }
 
 void main();
